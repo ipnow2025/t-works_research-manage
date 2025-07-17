@@ -1,15 +1,10 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
-import { Plus, Upload, X, ExternalLink, Edit, Check } from "lucide-react";
+import { Plus, X, Edit, Check } from "lucide-react";
 import { useState, useRef } from "react";
 import { apiFetch } from "@/lib/func";
 
@@ -295,11 +290,24 @@ const RegistPop = ({
     }
   };
 
-  // 유효성 검사 함수 (사업기간 체크만)
+  // 유효성 검사 함수
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     
-    // 사업기간 검증 (둘 다 입력된 경우만)
+    // 사업명 필수 검증
+    if (!formData.projectName?.trim()) {
+      newErrors.projectName = "사업명을 입력해주세요";
+    }
+    
+    // 사업기간 필수 검증
+    if (!formData.startDate) {
+      newErrors.startDate = "사업 시작일을 입력해주세요";
+    }
+    if (!formData.endDate) {
+      newErrors.endDate = "사업 종료일을 입력해주세요";
+    }
+    
+    // 사업기간 순서 검증 (둘 다 입력된 경우)
     if (formData.startDate && formData.endDate) {
       if (new Date(formData.startDate) > new Date(formData.endDate)) {
         newErrors.period = "사업 종료일은 시작일보다 이후여야 합니다";
@@ -373,77 +381,85 @@ const RegistPop = ({
     }
   };
 
-  return (
-    <Dialog open={isRegisterDialogOpen} onOpenChange={setIsRegisterDialogOpen}>
-        <DialogContent 
-          className="max-w-3xl max-h-[90vh] overflow-y-auto"
-          style={{ 
-            backgroundColor: 'white', 
-            border: '1px solid #e5e7eb', 
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-            zIndex: 9999
-          }}
-        >
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold">새 과제 기획</DialogTitle>
-          </DialogHeader>
+  if (!isRegisterDialogOpen) return null
 
-          <div className="space-y-4">
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-4xl h-full max-h-full flex flex-col">
+        {/* 헤더 - 고정 */}
+        <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-700">
+          <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">새 과제 기획</h2>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsRegisterDialogOpen(false)}
+            className="rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+
+        {/* 컨텐츠 - 스크롤 가능 */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
+
+          <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="new-project-name" className="text-sm font-medium">
-                  사업명
-                </Label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  사업명 <span className="text-red-500">*</span>
+                </label>
                 <Input 
-                  id="new-project-name" 
                   placeholder="예: 스마트공장 구축지원 사업"
                   value={formData.projectName}
                   onChange={(e) => handleInputChange('projectName', e.target.value)}
-                  className={errors.projectName ? 'border-red-500' : ''}
+                  className={`border-slate-200 dark:border-slate-700 rounded-xl ${errors.projectName ? 'border-red-500' : ''}`}
                 />
                 {errors.projectName && (
                   <p className="text-sm text-red-500">{errors.projectName}</p>
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="new-project-manager" className="text-sm font-medium">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                   총괄책임자
-                </Label>
+                </label>
                 <Input 
-                  id="new-project-manager" 
                   placeholder="담당자 실명 입력"
                   value={formData.projectManager}
                   onChange={(e) => handleInputChange('projectManager', e.target.value)}
-                  className={errors.projectManager ? 'border-red-500' : ''}
+                  className={`border-slate-200 dark:border-slate-700 rounded-xl ${errors.projectManager ? 'border-red-500' : ''}`}
                 />
                 {errors.projectManager && (
                   <p className="text-sm text-red-500">{errors.projectManager}</p>
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="new-project-period" className="text-sm font-medium">
-                  사업기간
-                </Label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  사업기간 <span className="text-red-500">*</span>
+                </label>
                 <div className="flex items-center space-x-2">
                   <div className="flex-1">
                     <Input 
-                      id="new-start-date" 
                       type="date"
                       value={formData.startDate}
                       onChange={(e) => handleInputChange('startDate', e.target.value)}
-                      className={errors.period ? 'border-red-500' : ''}
+                      className={`border-slate-200 dark:border-slate-700 rounded-xl ${errors.startDate || errors.period ? 'border-red-500' : ''}`}
                     />
+                    {errors.startDate && (
+                      <p className="text-sm text-red-500 mt-1">{errors.startDate}</p>
+                    )}
                   </div>
-                  <span>~</span>
+                  <span className="text-slate-500 dark:text-slate-400">~</span>
                   <div className="flex-1">
                     <Input 
-                      id="new-end-date" 
                       type="date"
                       value={formData.endDate}
                       onChange={(e) => handleInputChange('endDate', e.target.value)}
                       min={formData.startDate || undefined}
-                      className={errors.period ? 'border-red-500' : ''}
+                      className={`border-slate-200 dark:border-slate-700 rounded-xl ${errors.endDate || errors.period ? 'border-red-500' : ''}`}
                     />
+                    {errors.endDate && (
+                      <p className="text-sm text-red-500 mt-1">{errors.endDate}</p>
+                    )}
                   </div>
                 </div>
                 {errors.period && (
@@ -451,64 +467,60 @@ const RegistPop = ({
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="new-project-application-date" className="text-sm font-medium">
-                  신청일
-                </Label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  접수마감일
+                </label>
                 <Input 
-                  id="new-project-application-date" 
                   type="date"
                   value={formData.applicationDate}
                   onChange={(e) => handleInputChange('applicationDate', e.target.value)}
-                  className={errors.applicationDate ? 'border-red-500' : ''}
+                  className={`border-slate-200 dark:border-slate-700 rounded-xl ${errors.applicationDate ? 'border-red-500' : ''}`}
                 />
                 {errors.applicationDate && (
                   <p className="text-sm text-red-500">{errors.applicationDate}</p>
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="new-project-department" className="text-sm font-medium">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                   주관부처
-                </Label>
+                </label>
                 <Input 
-                  id="new-project-department" 
                   placeholder="주관부처 입력"
                   value={formData.department}
                   onChange={(e) => handleInputChange('department', e.target.value)}
-                  className={errors.department ? 'border-red-500' : ''}
+                  className={`border-slate-200 dark:border-slate-700 rounded-xl ${errors.department ? 'border-red-500' : ''}`}
                 />
                 {errors.department && (
                   <p className="text-sm text-red-500">{errors.department}</p>
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="new-project-institution" className="text-sm font-medium">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                   전문기관
-                </Label>
+                </label>
                 <Input 
-                  id="new-project-institution" 
                   placeholder="전문기관 입력"
                   value={formData.institution}
                   onChange={(e) => handleInputChange('institution', e.target.value)}
-                  className={errors.institution ? 'border-red-500' : ''}
+                  className={`border-slate-200 dark:border-slate-700 rounded-xl ${errors.institution ? 'border-red-500' : ''}`}
                 />
                 {errors.institution && (
                   <p className="text-sm text-red-500">{errors.institution}</p>
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="new-project-cost" className="text-sm font-medium">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                   총사업비
-                </Label>
+                </label>
                 <div className="relative">
                   <Input 
-                    id="new-project-cost" 
                     type="text" 
                     placeholder="예: 30,000"
                     value={formData.totalCost}
                     onChange={(e) => handleTotalCostChange(e.target.value)}
-                    className={errors.totalCost ? 'border-red-500' : ''}
+                    className={`border-slate-200 dark:border-slate-700 rounded-xl ${errors.totalCost ? 'border-red-500' : ''}`}
                   />
-                  <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-sm text-gray-500">
+                  <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-sm text-slate-500 dark:text-slate-400">
                     천원
                   </span>
                 </div>
@@ -519,37 +531,24 @@ const RegistPop = ({
             </div>
           </div>
 
-          <Separator className="my-4" />
+          <Separator className="my-6 border-slate-200 dark:border-slate-700" />
 
           <Tabs defaultValue="tab1" className="w-full">
-            <TabsList className="grid grid-cols-2 mb-4">
-              <TabsTrigger value="tab1">기본정보</TabsTrigger>
-              {/* <TabsTrigger value="tab2">목표달성 현황</TabsTrigger> */}
-              <TabsTrigger value="tab3">컨소시엄 구성</TabsTrigger>
+            <TabsList className="grid grid-cols-2 mb-6 bg-slate-100 dark:bg-slate-800 rounded-xl">
+              <TabsTrigger value="tab1" className="rounded-xl data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm">기본정보</TabsTrigger>
+              <TabsTrigger value="tab3" className="rounded-xl data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm">컨소시엄 구성</TabsTrigger>
             </TabsList>
 
             {/* 기본정보 Tab */}
-            <TabsContent value="tab1" className="space-y-4">
+            <TabsContent value="tab1" className="space-y-6">
               <div className="space-y-2">
-                <Label className="text-sm font-medium">공고문 링크</Label>
-                <div className="flex items-center space-x-2">
-                  <Input 
-                    placeholder="공고문 URL을 입력하세요"
-                    value={formData.announcementLink}
-                    onChange={(e) => handleInputChange('announcementLink', e.target.value)}
-                    className="flex-1"
-                  />
-                  {/* <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="text-blue-600"
-                    onClick={openAnnouncementLink}
-                    disabled={!formData.announcementLink}
-                  >
-                    <ExternalLink className="h-4 w-4 mr-1" />
-                    링크 열기
-                  </Button> */}
-                </div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">공고문 링크</label>
+                <Input 
+                  placeholder="공고문 URL을 입력하세요"
+                  value={formData.announcementLink}
+                  onChange={(e) => handleInputChange('announcementLink', e.target.value)}
+                  className="border-slate-200 dark:border-slate-700 rounded-xl"
+                />
               </div>
 
               {/* <div className="space-y-2">
@@ -619,26 +618,24 @@ const RegistPop = ({
               </div> */}
 
               <div className="space-y-2">
-                <Label htmlFor="new-project-purpose" className="text-sm font-medium">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                   사업목적
-                </Label>
-                <Textarea 
-                  id="new-project-purpose" 
+                </label>
+                <textarea 
                   placeholder="사업의 목적을 입력하세요" 
-                  className="min-h-[100px]"
+                  className="w-full p-3 border border-slate-200 dark:border-slate-700 rounded-xl resize-none min-h-[100px]"
                   value={formData.projectPurpose}
                   onChange={(e) => handleInputChange('projectPurpose', e.target.value)}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="new-project-details" className="text-sm font-medium">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                   사업내용
-                </Label>
-                <Textarea 
-                  id="new-project-details" 
+                </label>
+                <textarea 
                   placeholder="사업의 상세 내용을 입력하세요" 
-                  className="min-h-[150px]"
+                  className="w-full p-3 border border-slate-200 dark:border-slate-700 rounded-xl resize-none min-h-[150px]"
                   value={formData.projectDetails}
                   onChange={(e) => handleInputChange('projectDetails', e.target.value)}
                 />
@@ -768,16 +765,20 @@ const RegistPop = ({
             </TabsContent> */}
 
             {/* 컨소시엄 구성 Tab */}
-            <TabsContent value="tab3" className="space-y-4">
+            <TabsContent value="tab3" className="space-y-6">
               <div className="flex justify-between items-center">
-                <h3 className="text-lg font-medium">컨소시엄 구성</h3>
-                <Button size="sm" onClick={addConsortiumOrganization}>
+                <h3 className="text-lg font-medium text-slate-800 dark:text-slate-200">컨소시엄 구성</h3>
+                <Button 
+                  size="sm" 
+                  onClick={addConsortiumOrganization}
+                  className="bg-blue-500 hover:bg-blue-600 text-white rounded-xl"
+                >
                   <Plus className="h-4 w-4 mr-2" />
                   컨소시엄 추가
                 </Button>
               </div>
 
-              <div className="max-h-60 overflow-auto border rounded-md">
+              <div className="max-h-60 overflow-auto border border-slate-200 dark:border-slate-700 rounded-xl">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -902,21 +903,28 @@ const RegistPop = ({
               </div>
             </TabsContent>
           </Tabs>
+        </div>
 
-          <DialogFooter className="flex justify-between space-x-2 pt-4">
-            {/* <Button variant="outline">이전</Button> */}
-            <div className="flex space-x-2">
-              <DialogClose asChild>
-                  <Button variant="outline" disabled={isSubmitting}>취소</Button>
-              </DialogClose>
-              {/* <Button variant="outline">임시저장</Button> */}
-                <Button onClick={regist} disabled={isSubmitting}>
-                  {isSubmitting ? '등록 중...' : '등록'}
-                </Button>
-            </div>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        {/* 버튼 - 하단 고정 */}
+        <div className="flex justify-end space-x-3 p-6 border-t border-slate-200 dark:border-slate-700">
+          <Button
+            variant="outline"
+            onClick={() => setIsRegisterDialogOpen(false)}
+            disabled={isSubmitting}
+            className="border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/20 text-slate-700 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-900/30 transition-colors duration-200 rounded-xl"
+          >
+            취소
+          </Button>
+          <Button 
+            onClick={regist} 
+            disabled={isSubmitting || !formData.projectName?.trim() || !formData.startDate || !formData.endDate}
+            className="bg-blue-500 hover:bg-blue-600 text-white rounded-xl cursor-pointer disabled:bg-gray-400 disabled:cursor-not-allowed"
+          >
+            {isSubmitting ? '등록 중...' : '등록'}
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 };
 
