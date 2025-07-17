@@ -257,8 +257,11 @@ export async function DELETE(
       );
     }
 
-    await prisma.projectPlanning.delete({
+    await prisma.projectPlanning.update({
       where: { id: projectId },
+      data: {
+        isFlag: 0
+      }
     });
 
     return NextResponse.json({
