@@ -1,0 +1,520 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model ManageResearcher {
+  id            Int      @id @default(autoincrement())
+  name          String   @db.VarChar(100)
+  department    String   @db.VarChar(100)
+  position      String   @db.VarChar(100)
+  email         String   @unique @db.VarChar(255)
+  phone         String   @db.VarChar(50)
+  age           Int?
+  gender        Gender   @default(MALE)
+  degree        String?  @db.VarChar(100)
+  lab           String?  @db.VarChar(200)
+  labUrl        String?  @db.VarChar(500) @map("lab_url")
+  education     Json?
+  researchAreas Json?    @map("research_areas")
+  publications  Json?
+  patents       Json?
+  awards        Json?
+  status        Status   @default(ACTIVE)
+  deletedAt     DateTime? @map("deleted_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@map("manage_researchers")
+}
+
+model ManageProject {
+  id           Int      @id @default(autoincrement())
+  name         String
+  type         String
+  organization String
+  piName       String   @map("pi_name")
+  startDate    DateTime @map("start_date")
+  endDate      DateTime @map("end_date")
+  budget       Int?
+  description  String?
+  status       String
+  memberIdx    String?  @map("member_idx")
+  memberName   String?  @map("member_name")
+  companyIdx   String?  @map("company_idx")
+  companyName  String?  @map("company_name")
+  isFlag       Int      @default(1) @map("is_flag")
+  regDate      Int      @map("reg_date")
+  mdyDate      Int      @map("mdy_date")
+
+  @@map("manage_projects")
+}
+
+model ManagePi {
+  id           Int      @id @default(autoincrement())
+  name         String
+  memberIdx    String?  @map("member_idx")
+  memberName   String?  @map("member_name")
+  companyIdx   String?  @map("company_idx")
+  companyName  String?  @map("company_name")
+  isFlag       Int      @default(1) @map("is_flag")
+  regDate      Int      @map("reg_date")
+  mdyDate      Int      @map("mdy_date")
+
+  @@map("manage_pi")
+}
+
+model ManageOrganization {
+  id           Int      @id @default(autoincrement())
+  name         String
+  memberIdx    String?  @map("member_idx")
+  memberName   String?  @map("member_name")
+  companyIdx   String?  @map("company_idx")
+  companyName  String?  @map("company_name")
+  isFlag       Int      @default(1) @map("is_flag")
+  regDate      Int      @map("reg_date")
+  mdyDate      Int      @map("mdy_date")
+
+  @@map("manage_organizations")
+}
+
+// Project Planning 관련 테이블들
+model ProjectPlanning {
+  id                Int      @id @default(autoincrement())
+  projectName       String   @map("project_name")
+  projectManager    String   @map("project_manager")
+  startDate         DateTime @map("start_date")
+  endDate           DateTime @map("end_date")
+  department        String?
+  institution       String?
+  totalCost         Int      @default(0) @map("total_cost")
+  projectPurpose    String?  @map("project_purpose")
+  projectDetails    String?  @map("project_details")
+  announcementLink  String?  @map("announcement_link")
+  attachmentFiles   Json?    @map("attachment_files")
+  status            String   @default("DRAFT")
+  applicationDate   Int?     @map("application_date")
+  memberIdx         String?  @map("member_idx")
+  memberName        String?  @map("member_name")
+  companyIdx        String?  @map("company_idx")
+  companyName       String?  @map("company_name")
+  isFlag            Int      @default(1) @map("is_flag")
+  regDate           Int      @map("reg_date")
+  mdyDate           Int      @map("mdy_date")
+  
+  // 상태정보 필드들
+  performanceSummary        String? @map("performance_summary")
+  followUpActions           String? @map("follow_up_actions")
+  reapplicationPossibility  String? @map("reapplication_possibility")
+  improvementDirection      String? @map("improvement_direction")
+  statusInfoUpdatedAt       Int     @default(0) @map("status_info_updated_at")
+  statusInfoUpdatedBy       String? @map("status_info_updated_by")
+
+  // Relations
+  policyGoals       ProjectPolicyGoal[]
+  consortiumOrgs    ProjectConsortiumOrganization[]
+  tasks             ProjectTasks[]
+
+  @@map("project_planning")
+}
+
+model ProjectPolicyGoal {
+  id                Int      @id @default(autoincrement())
+  projectPlanningId Int      @map("project_planning_id")
+  policyName        String   @map("policy_name")
+  targetValue       Decimal? @map("target_value") @db.Decimal(5,2)
+  achievementRate   Decimal? @map("achievement_rate") @db.Decimal(5,2)
+  memberIdx         String?  @map("member_idx")
+  memberName        String?  @map("member_name")
+  companyIdx        String?  @map("company_idx")
+  companyName       String?  @map("company_name")
+  isFlag            Int      @default(1) @map("is_flag")
+  regDate           Int      @map("reg_date")
+  mdyDate           Int      @map("mdy_date")
+
+  // Relations
+  projectPlanning   ProjectPlanning @relation(fields: [projectPlanningId], references: [id])
+
+  @@map("project_policy_goals")
+}
+
+model ProjectConsortiumOrganization {
+  id                Int      @id @default(autoincrement())
+  projectPlanningId Int      @map("project_planning_id")
+  year              Int      @default(1) // 연차별 관리
+  organizationType  String   @map("organization_type")
+  organizationName  String   @map("organization_name")
+  roleDescription   String?  @map("role_description")
+  memberIdx         String?  @map("member_idx")
+  memberName        String?  @map("member_name")
+  companyIdx        String?  @map("company_idx")
+  companyName       String?  @map("company_name")
+  isFlag            Int      @default(1) @map("is_flag")
+  regDate           Int      @map("reg_date")
+  mdyDate           Int      @map("mdy_date")
+
+  // Relations
+  projectPlanning   ProjectPlanning @relation(fields: [projectPlanningId], references: [id])
+
+  @@map("project_consortium_organizations")
+}
+
+model ProjectConsortiumMember {
+  id                Int      @id @default(autoincrement())
+  organizationId    Int      @map("organization_id")
+  projectPlanningId Int      @map("project_planning_id")
+  year              Int      @default(1) // 연차별 관리
+  memberName        String   @map("member_name")
+  position          String?
+  role              String?
+  phone             String?
+  mobile            String?
+  email             String?
+  memberIdx         String?  @map("member_idx")
+  memberNameCreator String?  @map("member_name_creator")
+  companyIdx        String?  @map("company_idx")
+  companyName       String?  @map("company_name")
+  isFlag            Int      @default(1) @map("is_flag")
+  regDate           Int      @map("reg_date")
+  mdyDate           Int      @map("mdy_date")
+
+  @@map("project_consortium_members")
+}
+
+model ProjectTasks {
+  idx               Int      @id @default(autoincrement())
+  projectPlanningId Int      @map("project_planning_id")
+  title             String
+  description       String?
+  startDate         Int?     @map("start_date")
+  dueDate           Int?     @map("due_date")
+  status            String   @default("planned")
+  memberIdx         String   @map("member_idx")
+  memberName        String   @map("member_name")
+  companyIdx        String   @map("company_idx")
+  companyName       String   @map("company_name")
+  isFlag            Int      @default(1) @map("is_flag")
+  regDate           Int      @map("reg_date")
+  mdyDate           Int      @map("mdy_date")
+
+  // Relations
+  projectPlanning   ProjectPlanning @relation(fields: [projectPlanningId], references: [id])
+
+  @@map("project_tasks")
+}
+
+model ProjectMilestones {
+  id                  Int       @id @default(autoincrement())
+  projectId           Int       @map("project_id")
+  title               String    @db.VarChar(255)
+  description         String?   @db.Text
+  status              MilestoneStatus @default(PLANNED)
+  dueDate             DateTime? @map("due_date")
+  completionDate      DateTime? @map("completion_date")
+  progressPercentage  Int       @default(0) @map("progress_percentage")
+  priority            MilestonePriority @default(MEDIUM)
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  @@map("project_milestones")
+}
+
+// Budget Management Models
+model BudgetCategory {
+  idx                Int      @id @default(autoincrement())
+  categoryName       String   @map("category_name")
+  categoryDescription String? @map("category_description") @db.Text
+  companyIdx         String   @map("company_idx")
+  memberIdx          String   @map("member_idx")
+  regDate            Int      @map("reg_date")
+  mdyDate            Int      @map("mdy_date")
+
+  // Relations
+  budgetItems        BudgetItem[]
+
+  @@map("project_budget_categories")
+}
+
+model ProjectBudget {
+  idx            Int      @id @default(autoincrement())
+  projectIdx     Int      @map("project_idx")
+  budgetYear     Int      @map("budget_year")
+  totalBudget    Decimal  @map("total_budget") @db.Decimal(15, 2) @default(0)
+  usedBudget     Decimal  @map("used_budget") @db.Decimal(15, 2) @default(0)
+  remainingBudget Decimal @map("remaining_budget") @db.Decimal(15, 2) @default(0)
+  budgetStatus   BudgetStatus @map("budget_status") @default(draft)
+  budgetNotes    String?  @map("budget_notes") @db.Text
+  companyIdx     String   @map("company_idx")
+  memberIdx      String   @map("member_idx")
+  regDate        Int      @map("reg_date")
+  mdyDate        Int      @map("mdy_date")
+
+  // Relations
+  budgetItems    BudgetItem[]
+
+  @@map("project_budgets")
+}
+
+model BudgetItem {
+  idx            Int      @id @default(autoincrement())
+  budgetIdx      Int      @map("budget_idx")
+  categoryIdx    Int      @map("category_idx")
+  itemName       String   @map("item_name")
+  itemDescription String? @map("item_description") @db.Text
+  plannedAmount  Decimal  @map("planned_amount") @db.Decimal(15, 2) @default(0)
+  actualAmount   Decimal  @map("actual_amount") @db.Decimal(15, 2) @default(0)
+  itemStatus     ItemStatus @map("item_status") @default(planned)
+  companyIdx     String   @map("company_idx")
+  memberIdx      String   @map("member_idx")
+  regDate        Int      @map("reg_date")
+  mdyDate        Int      @map("mdy_date")
+
+  // Relations
+  budget         ProjectBudget @relation(fields: [budgetIdx], references: [idx])
+  category       BudgetCategory @relation(fields: [categoryIdx], references: [idx])
+
+  @@map("project_budget_items")
+}
+
+model BudgetDocument {
+  idx            Int      @id @default(autoincrement())
+  budgetIdx      Int      @map("budget_idx")
+  documentName   String   @map("document_name")
+  documentType   String   @map("document_type")
+  filePath       String   @map("file_path")
+  fileSize       Int?     @map("file_size")
+  companyIdx     String   @map("company_idx")
+  memberIdx      String   @map("member_idx")
+  regDate        Int      @map("reg_date")
+  mdyDate        Int      @map("mdy_date")
+
+  @@map("project_budget_documents")
+}
+
+model RelationConfig {
+  idx                      Int    @id @default(autoincrement())
+  relationTableName        String @map("relation_table_name")
+  relationTableIdx         Int    @map("relation_table_idx")
+  relationTableColumnName  String @map("relation_table_column_name")
+  relationTableColumnIdx   Int    @map("relation_table_column_idx")
+  regDate                  Int    @map("reg_date")
+  mdyDate                  Int    @map("mdy_date")
+
+  @@map("project_relation_config")
+}
+
+enum Gender {
+  MALE   @map("남성")
+  FEMALE @map("여성")
+}
+
+enum Status {
+  ACTIVE   @map("active")
+  INACTIVE @map("inactive")
+}
+
+enum BudgetStatus {
+  draft     @map("draft")
+  submitted @map("submitted")
+  approved  @map("approved")
+  rejected  @map("rejected")
+}
+
+enum ItemStatus {
+  planned     @map("planned")
+  in_progress @map("in_progress")
+  completed   @map("completed")
+  cancelled   @map("cancelled")
+}
+
+enum MilestoneStatus {
+  PLANNED     @map("planned")
+  IN_PROGRESS @map("in_progress")
+  COMPLETED   @map("completed")
+  DELAYED     @map("delayed")
+}
+
+enum MilestonePriority {
+  LOW      @map("low")
+  MEDIUM   @map("medium")
+  HIGH     @map("high")
+  CRITICAL @map("critical")
+}
+
+// Schedule Management Models
+model ProjectScheduleType {
+  id           Int      @id @default(autoincrement())
+  category     String   @db.VarChar(100)
+  color        String   @db.VarChar(100)
+  memberIdx    String   @map("member_idx") @db.VarChar(100)
+  memberName   String   @map("member_name") @db.VarChar(100)
+  companyIdx   String   @map("company_idx") @db.VarChar(100)
+  companyName  String   @map("company_name") @db.VarChar(100)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+
+  @@map("project_schedule_types")
+}
+
+model ProjectScheduleSchedule {
+  id           Int      @id @default(autoincrement())
+  memberIdx    String   @map("member_idx") @db.VarChar(100)
+  memberName   String   @map("member_name") @db.VarChar(100)
+  companyIdx   String   @map("company_idx") @db.VarChar(100)
+  companyName  String   @map("company_name") @db.VarChar(100)
+  title        String   @db.VarChar(255)
+  category     String?  @db.VarChar(255)
+  description  String?  @db.Text
+  startDate    DateTime @map("start_date")
+  endDate      DateTime? @map("end_date")
+  isAllDay     Boolean  @default(false) @map("is_all_day")
+  location     String?  @db.VarChar(255)
+  participants String?  @db.Text
+  projectId    Int      @map("project_id")
+  typeId       Int      @map("type_id")
+  lastEditor   String?  @map("last_editor") @db.VarChar(100)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+
+  @@map("project_schedule_schedules")
+}
+
+model ProjectScheduleAnnouncement {
+  id           Int      @id @default(autoincrement())
+  memberIdx    String   @map("member_idx") @db.VarChar(100)
+  memberName   String   @map("member_name") @db.VarChar(100)
+  companyIdx   String   @map("company_idx") @db.VarChar(100)
+  companyName  String   @map("company_name") @db.VarChar(100)
+  title        String   @db.VarChar(255)
+  content      String   @db.Text
+  important    Boolean  @default(false)
+  lastEditor   String?  @map("last_editor") @db.VarChar(100)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+
+  @@map("project_schedule_announcements")
+}
+
+// KPI Management Models
+model ProjectKpiType {
+  idx           Int      @id @default(autoincrement())
+  memberIdx     String   @map("member_idx") @db.VarChar(100)
+  memberName    String   @map("member_name") @db.VarChar(100)
+  companyIdx    String   @map("company_idx") @db.VarChar(100)
+  companyName   String   @map("company_name") @db.VarChar(100)
+  projectId     Int      @map("project_id")
+  name          String?  @db.VarChar(100)
+  description   String?  @db.Text
+  unit          String?  @db.VarChar(50)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@map("project_kpi_types")
+}
+
+model ProjectKpiGoal {
+  id           Int      @id @default(autoincrement())
+  memberIdx    String   @map("member_idx") @db.VarChar(100)
+  memberName   String   @map("member_name") @db.VarChar(100)
+  companyIdx   String   @map("company_idx") @db.VarChar(100)
+  companyName  String   @map("company_name") @db.VarChar(100)
+  projectId    Int      @map("project_id")
+  year         Int
+  kpiType      String   @map("kpi_type") @db.VarChar(50)
+  targetValue  Int      @map("target_value")
+  description  String?  @db.Text
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("project_kpi_goal")
+}
+
+model ProjectKpiResult {
+  id              Int      @id @default(autoincrement())
+  memberIdx       String   @map("member_idx") @db.VarChar(100)
+  memberName      String   @map("member_name") @db.VarChar(100)
+  companyIdx      String   @map("company_idx") @db.VarChar(100)
+  companyName     String   @map("company_name") @db.VarChar(100)
+  projectId       Int      @map("project_id")
+  year            Int
+  kpiType         String   @map("kpi_type") @db.VarChar(50)
+  actualValue     Int      @map("actual_value") @default(0)
+  achievementDate DateTime? @map("achievement_date") @db.Date
+  description     String?  @db.Text
+  attachmentFiles Json?    @map("attachment_files")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@map("project_kpi_results")
+}
+
+// 연구일지 관련 모델들
+model ResearchLog {
+  id           Int      @id @default(autoincrement())
+  date         DateTime @db.Date
+  title        String   @db.VarChar(255)
+  author       String   @db.VarChar(100)
+  projectTitle String   @map("project_title") @db.VarChar(255)
+  fileCount    Int      @default(0) @map("file_count")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("research_log")
+}
+
+model ResearchOutput {
+  idx          Int      @id @default(autoincrement())
+  type         String   @db.VarChar(50)
+  title        String   @db.VarChar(255)
+  titleEn      String?  @db.VarChar(255)
+  authors      String   @db.VarChar(255)
+  affiliation  String?  @db.VarChar(255)
+  contact      String?  @db.VarChar(100)
+  regDate      String   @db.VarChar(20) @map("regDate")
+  publisher    String   @db.VarChar(255)
+  project      String   @db.VarChar(255)
+  abstract     String?  @db.Text
+  summary      String?  @db.Text
+  keywords     String?  @db.Text
+  mainWords    String?  @db.Text
+  files        String?  @db.Text
+  regDateTs    DateTime @default(now()) @map("reg_date")
+  mdyDate      DateTime @updatedAt @map("mdy_date")
+  isFlag       Int      @default(1) @map("is_flag")
+  memberIdx    String   @db.VarChar(100) @map("memberIdx")
+  companyIdx   String   @db.VarChar(100) @map("companyIdx")
+
+  @@map("research_output")
+}
+
+model ResearchRecord {
+  id                  Int      @id @default(autoincrement())
+  recordDate          DateTime @map("record_date") @db.Date
+  title               String   @db.VarChar(255)
+  content             String?  @db.Text
+  authorId            Int?     @map("author_id")
+  projectId           Int?     @map("project_id")
+  filePath            String?  @map("file_path") @db.VarChar(512)
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+  author              String?  @db.VarChar(100)
+  projectTitle        String?  @map("project_title") @db.VarChar(255)
+  experimentType      String?  @map("experiment_type") @db.VarChar(100)
+  experimentLocation  String?  @map("experiment_location") @db.VarChar(255)
+  participants        String?  @db.Text
+  startTime           DateTime? @map("start_time") @db.Time
+  endTime             DateTime? @map("end_time") @db.Time
+  experimentConditions String?  @map("experiment_conditions") @db.Text
+
+  @@map("research_record")
+}
