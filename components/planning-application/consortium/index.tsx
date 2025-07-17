@@ -980,9 +980,8 @@ export function Consortium({ project, onConsortiumChange }: ConsortiumProps) {
                         <span className="text-lg font-medium">{org.name}</span>
                       )}
                       <Select value={org.type} onValueChange={(value) => handleOrgTypeChange(org.id, value)}>
-                        <SelectTrigger className="w-24 h-8 border-0 bg-transparent p-0">
+                        <SelectTrigger className="w-24 h-8 border-0 bg-transparent py-0 px-2">
                           <SelectValue />
-                          <ChevronDown className="h-4 w-4 ml-1" />
                         </SelectTrigger>
                         <SelectContent className="bg-white border border-gray-200 shadow-lg">
                           <SelectItem value="주관" className="bg-white hover:bg-gray-50">
