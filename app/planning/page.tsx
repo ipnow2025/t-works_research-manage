@@ -189,24 +189,34 @@ export default function PlanningPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <main className="p-6">
-        <div className="space-y-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight">
-                기획/신청 과제
-                <span className="text-sm bg-yellow-100 dark:bg-yellow-900 px-2 py-1 rounded-full ml-2">
-                  {filteredProjects.length}건
-                </span>
-              </h1>
-              <p className="text-muted-foreground">과제 기획 및 신청 현황을 관리합니다.</p>
-            </div>
-            <Button onClick={() => setNewProjectDialogOpen(true)} className="bg-primary hover:bg-primary/90">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col">
+      {/* 헤더 */}
+      <div className="bg-white/80 backdrop-blur-xl border-b border-slate-200/50 dark:bg-slate-900/80 dark:border-slate-700/50 px-8 py-4 shadow-sm">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-200">
+              기획/신청 과제
+              <span className="text-sm bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300 px-2 py-1 rounded-full ml-2">
+                {filteredProjects.length}건
+              </span>
+            </h1>
+            <p className="text-slate-500 dark:text-slate-400 text-sm">과제 기획 및 신청 현황을 관리합니다</p>
+          </div>
+          <div className="flex items-center space-x-3">
+            <Button 
+              onClick={() => setNewProjectDialogOpen(true)} 
+              className="bg-blue-500 hover:bg-blue-600 text-white rounded-xl"
+            >
               <Plus className="w-4 h-4 mr-2" />
               새 과제 기획
             </Button>
           </div>
+        </div>
+      </div>
+
+      {/* 메인 컨텐츠 */}
+      <main className="flex-1 p-6">
+        <div className="space-y-6">
 
           {/* 검색 */}
           {/* <Card>
@@ -234,7 +244,7 @@ export default function PlanningPage() {
                 filteredProjects.map((project) => (
                   <div
                     key={project.id}
-                    className="border border-gray-200 dark:border-gray-700 rounded-lg p-6 hover:border-primary transition-colors"
+                    className="border border-gray-200 dark:border-gray-700 rounded-lg p-6 hover:border-blue-300 transition-colors"
                   >
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-2">
@@ -259,7 +269,7 @@ export default function PlanningPage() {
                           variant="outline"
                           size="sm"
                           onClick={(e) => handleEditProject(project, e)}
-                          className="flex items-center gap-1"
+                          className="flex items-center gap-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                         >
                           <Edit className="w-4 h-4" />
                           수정

@@ -159,8 +159,8 @@ export default function CompletedPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
-        <main className="p-6">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col">
+        <main className="flex-1 p-6">
           <div className="flex items-center justify-center h-64">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
@@ -170,20 +170,25 @@ export default function CompletedPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <main className="p-6">
-        <div className="space-y-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight">
-                완료/미선정 과제
-                <span className="text-sm bg-blue-100 dark:bg-blue-900 px-2 py-1 rounded-full ml-2">
-                  {filteredProjects.length}건
-                </span>
-              </h1>
-              <p className="text-muted-foreground">완료되거나 미선정된 연구과제 목록입니다.</p>
-            </div>
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col">
+      {/* 헤더 */}
+      <div className="bg-white/80 backdrop-blur-xl border-b border-slate-200/50 dark:bg-slate-900/80 dark:border-slate-700/50 px-8 py-4 shadow-sm">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-200">
+              완료/미선정 과제
+              <span className="text-sm bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 px-2 py-1 rounded-full ml-2">
+                {filteredProjects.length}건
+              </span>
+            </h1>
+            <p className="text-slate-500 dark:text-slate-400 text-sm">완료되거나 미선정된 연구과제 목록입니다</p>
           </div>
+        </div>
+      </div>
+
+      {/* 메인 컨텐츠 */}
+      <main className="flex-1 p-6">
+        <div className="space-y-6">
 
           {/* 검색 */}
           {/* <Card>

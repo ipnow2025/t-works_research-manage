@@ -21,7 +21,7 @@ export default function RootLayout({
     <html lang="ko" suppressHydrationWarning>
       <body className={inter.className}>
         <MemberProvider>
-          <main className="p-5">{children}</main>
+          <main>{children}</main>
         </MemberProvider>
       </body>
     </html>
