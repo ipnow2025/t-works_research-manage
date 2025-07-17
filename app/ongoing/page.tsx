@@ -211,7 +211,7 @@ export default function OngoingPage() {
                 filteredProjects.map((project) => (
                   <div
                     key={project.id}
-                    className="border border-gray-200 dark:border-gray-700 rounded-lg p-6 hover:border-primary transition-colors"
+                    className="border border-gray-200 dark:border-gray-700 rounded-lg p-6 hover:border-blue-300 transition-colors"
                   >
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-2">
@@ -236,7 +236,7 @@ export default function OngoingPage() {
                           variant="outline"
                           size="sm"
                           onClick={(e) => handleEditProject(project, e)}
-                          className="flex items-center gap-1"
+                          className="flex items-center gap-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                         >
                           <Edit className="w-4 h-4" />
                           수정
