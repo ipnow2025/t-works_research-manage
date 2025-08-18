@@ -510,7 +510,7 @@ const RegistPop = ({
               </div>
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  총사업비
+                  정부사업비
                 </label>
                 <div className="relative">
                   <Input 

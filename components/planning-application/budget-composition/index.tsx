@@ -35,15 +35,15 @@ interface Organization {
 }
 
 interface BudgetCategory {
+  personnel: number // 인건비
   studentPersonnel: number // 학생인건비
   researchFacilities: number // 연구시설·장비비
   researchMaterials: number // 연구재료비
   researchActivities: number // 연구활동비
   contractedRD: number // 위탁연구개발비
   internationalJointRD: number // 국제공동연구개발비
-  researchProjectPromotion: number // 연구과제추진비
+  researchDevelopmentBurden: number // 연구개발부담비
   researchAllowance: number // 연구수당
-  researchCosts: number // 연구비
   indirectCosts: number // 간접비
   [key: string]: number // 사용자 정의 항목을 위한 인덱스 시그니처
 }
@@ -182,28 +182,28 @@ export function BudgetComposition({ project, consortiumData }: BudgetComposition
         
         // 카테고리별 예산 분배
         const cashBudget: BudgetCategory = {
+          personnel: 0,
           studentPersonnel: 0,
           researchFacilities: 0,
           researchMaterials: 0,
           researchActivities: 0,
           contractedRD: 0,
           internationalJointRD: 0,
-          researchProjectPromotion: 0,
+          researchDevelopmentBurden: 0,
           researchAllowance: 0,
-          researchCosts: 0,
           indirectCosts: 0,
         }
         
         const inkindBudget: BudgetCategory = {
+          personnel: 0,
           studentPersonnel: 0,
           researchFacilities: 0,
           researchMaterials: 0,
           researchActivities: 0,
           contractedRD: 0,
           internationalJointRD: 0,
-          researchProjectPromotion: 0,
+          researchDevelopmentBurden: 0,
           researchAllowance: 0,
-          researchCosts: 0,
           indirectCosts: 0,
         }
         
@@ -333,27 +333,27 @@ export function BudgetComposition({ project, consortiumData }: BudgetComposition
           existingYears.forEach((year) => {
             updatedBudgets[org.id][year] = {
               cash: {
+                personnel: 0,
                 studentPersonnel: 0,
                 researchFacilities: 0,
                 researchMaterials: 0,
                 researchActivities: 0,
                 contractedRD: 0,
                 internationalJointRD: 0,
-                researchProjectPromotion: 0,
+                researchDevelopmentBurden: 0,
                 researchAllowance: 0,
-                researchCosts: 0,
                 indirectCosts: 0,
               },
               inkind: {
+                personnel: 0,
                 studentPersonnel: 0,
                 researchFacilities: 0,
                 researchMaterials: 0,
                 researchActivities: 0,
                 contractedRD: 0,
                 internationalJointRD: 0,
-                researchProjectPromotion: 0,
+                researchDevelopmentBurden: 0,
                 researchAllowance: 0,
-                researchCosts: 0,
                 indirectCosts: 0,
               },
             };
@@ -473,27 +473,27 @@ export function BudgetComposition({ project, consortiumData }: BudgetComposition
               if (!convertedBudgets[orgId][year]) {
                 convertedBudgets[orgId][year] = {
                   cash: {
+                    personnel: 0,
                     studentPersonnel: 0,
                     researchFacilities: 0,
                     researchMaterials: 0,
                     researchActivities: 0,
                     contractedRD: 0,
                     internationalJointRD: 0,
-                    researchProjectPromotion: 0,
+                    researchDevelopmentBurden: 0,
                     researchAllowance: 0,
-                    researchCosts: 0,
                     indirectCosts: 0,
                   },
                   inkind: {
+                    personnel: 0,
                     studentPersonnel: 0,
                     researchFacilities: 0,
                     researchMaterials: 0,
                     researchActivities: 0,
                     contractedRD: 0,
                     internationalJointRD: 0,
-                    researchProjectPromotion: 0,
+                    researchDevelopmentBurden: 0,
                     researchAllowance: 0,
-                    researchCosts: 0,
                     indirectCosts: 0,
                   },
                 };
@@ -516,27 +516,27 @@ export function BudgetComposition({ project, consortiumData }: BudgetComposition
               if (!convertedBudgets[org.id][year]) {
                 convertedBudgets[org.id][year] = {
                   cash: {
+                    personnel: 0,
                     studentPersonnel: 0,
                     researchFacilities: 0,
                     researchMaterials: 0,
                     researchActivities: 0,
                     contractedRD: 0,
                     internationalJointRD: 0,
-                    researchProjectPromotion: 0,
+                    researchDevelopmentBurden: 0,
                     researchAllowance: 0,
-                    researchCosts: 0,
                     indirectCosts: 0,
                   },
                   inkind: {
+                    personnel: 0,
                     studentPersonnel: 0,
                     researchFacilities: 0,
                     researchMaterials: 0,
                     researchActivities: 0,
                     contractedRD: 0,
                     internationalJointRD: 0,
-                    researchProjectPromotion: 0,
+                    researchDevelopmentBurden: 0,
                     researchAllowance: 0,
-                    researchCosts: 0,
                     indirectCosts: 0,
                   },
                 };
@@ -572,27 +572,27 @@ export function BudgetComposition({ project, consortiumData }: BudgetComposition
             convertedBudgets[org.id] = {
               1: {
                 cash: {
+                  personnel: 0,
                   studentPersonnel: 0,
                   researchFacilities: 0,
                   researchMaterials: 0,
                   researchActivities: 0,
                   contractedRD: 0,
                   internationalJointRD: 0,
-                  researchProjectPromotion: 0,
+                  researchDevelopmentBurden: 0,
                   researchAllowance: 0,
-                  researchCosts: 0,
                   indirectCosts: 0,
                 },
                 inkind: {
+                  personnel: 0,
                   studentPersonnel: 0,
                   researchFacilities: 0,
                   researchMaterials: 0,
                   researchActivities: 0,
                   contractedRD: 0,
                   internationalJointRD: 0,
-                  researchProjectPromotion: 0,
+                  researchDevelopmentBurden: 0,
                   researchAllowance: 0,
-                  researchCosts: 0,
                   indirectCosts: 0,
                 },
               },
@@ -612,28 +612,28 @@ export function BudgetComposition({ project, consortiumData }: BudgetComposition
                         
             // 기본 카테고리 초기화
             const cashBudget: BudgetCategory = {
+              personnel: 0,
               studentPersonnel: 0,
               researchFacilities: 0,
               researchMaterials: 0,
               researchActivities: 0,
               contractedRD: 0,
               internationalJointRD: 0,
-              researchProjectPromotion: 0,
+              researchDevelopmentBurden: 0,
               researchAllowance: 0,
-              researchCosts: 0,
               indirectCosts: 0,
             };
 
             const inkindBudget: BudgetCategory = {
+              personnel: 0,
               studentPersonnel: 0,
               researchFacilities: 0,
               researchMaterials: 0,
               researchActivities: 0,
               contractedRD: 0,
               internationalJointRD: 0,
-              researchProjectPromotion: 0,
+              researchDevelopmentBurden: 0,
               researchAllowance: 0,
-              researchCosts: 0,
               indirectCosts: 0,
             };
 
@@ -659,16 +659,16 @@ export function BudgetComposition({ project, consortiumData }: BudgetComposition
                 } else if (categoryName.includes('국제') || categoryName.includes('해외')) {
                   cashBudget.internationalJointRD += amount;
                 } else if (categoryName.includes('추진') || categoryName.includes('관리')) {
-                  cashBudget.researchProjectPromotion += amount;
+                  cashBudget.researchDevelopmentBurden += amount;
                 } else if (categoryName.includes('수당') || categoryName.includes('보수')) {
                   cashBudget.researchAllowance += amount;
                 } else if (categoryName.includes('연구비') && !categoryName.includes('간접')) {
-                  cashBudget.researchCosts += amount;
+                  cashBudget.researchDevelopmentBurden += amount;
                 } else if (categoryName.includes('간접') || categoryName.includes('간접비')) {
                   cashBudget.indirectCosts += amount;
                 } else {
-                  // 매핑되지 않은 항목은 연구비로 분류
-                  cashBudget.researchCosts += amount;
+                  // 매핑되지 않은 항목은 연구개발부담비로 분류
+                  cashBudget.researchDevelopmentBurden += amount;
                 }
               }
             });
@@ -706,15 +706,15 @@ export function BudgetComposition({ project, consortiumData }: BudgetComposition
 
   // 기본 카테고리 라벨
   const defaultCategoryLabels = {
+    personnel: "인건비",
     studentPersonnel: "학생인건비",
     researchFacilities: "연구시설·장비비",
     researchMaterials: "연구재료비",
     researchActivities: "연구활동비",
     contractedRD: "위탁연구개발비",
     internationalJointRD: "국제공동연구개발비",
-    researchProjectPromotion: "연구과제추진비",
+    researchDevelopmentBurden: "연구개발부담비",
     researchAllowance: "연구수당",
-    researchCosts: "연구비",
     indirectCosts: "간접비",
   }
 
@@ -731,28 +731,28 @@ export function BudgetComposition({ project, consortiumData }: BudgetComposition
         if (!updated[org.id]) updated[org.id] = {}
         updated[org.id][nextYear] = {
           cash: {
+            personnel: 0,
             studentPersonnel: 0,
             researchFacilities: 0,
             researchMaterials: 0,
             researchActivities: 0,
             contractedRD: 0,
             internationalJointRD: 0,
-            researchProjectPromotion: 0,
+            researchDevelopmentBurden: 0,
             researchAllowance: 0,
-            researchCosts: 0,
             indirectCosts: 0,
             ...customCategoryDefaults,
           },
           inkind: {
+            personnel: 0,
             studentPersonnel: 0,
             researchFacilities: 0,
             researchMaterials: 0,
             researchActivities: 0,
             contractedRD: 0,
             internationalJointRD: 0,
-            researchProjectPromotion: 0,
+            researchDevelopmentBurden: 0,
             researchAllowance: 0,
-            researchCosts: 0,
             indirectCosts: 0,
             ...customCategoryDefaults,
           },
@@ -1633,7 +1633,7 @@ export function BudgetComposition({ project, consortiumData }: BudgetComposition
           <Card className="bg-blue-50 border-blue-200">
             <CardContent className="p-6 text-center">
               <div className="text-blue-600 text-sm mb-2">
-                총 사업비 {isMultiYear && `(${availableYears.length}년)`}
+                정부 사업비 {isMultiYear && `(${availableYears.length}년)`}
               </div>
               <div className="text-blue-700 text-2xl font-bold">
                 {calculateGrandTotal().toLocaleString()}
@@ -1643,7 +1643,7 @@ export function BudgetComposition({ project, consortiumData }: BudgetComposition
           </Card>
           <Card className="bg-green-50 border-green-200">
             <CardContent className="p-6 text-center">
-              <div className="text-green-600 text-sm mb-2">총 현금</div>
+              <div className="text-green-600 text-sm mb-2">정부 지원금</div>
               <div className="text-green-700 text-2xl font-bold">
                 {availableYears
                   .reduce((total, year) => total + calculateTotalTypeYearTotal("cash", year), 0)
@@ -1654,7 +1654,7 @@ export function BudgetComposition({ project, consortiumData }: BudgetComposition
           </Card>
           <Card className="bg-orange-50 border-orange-200">
             <CardContent className="p-6 text-center">
-              <div className="text-orange-600 text-sm mb-2">총 현물</div>
+              <div className="text-orange-600 text-sm mb-2">민간 부담금</div>
               <div className="text-orange-700 text-2xl font-bold">
                 {availableYears
                   .reduce((total, year) => total + calculateTotalTypeYearTotal("inkind", year), 0)
@@ -1903,11 +1903,6 @@ export function BudgetComposition({ project, consortiumData }: BudgetComposition
           <div className="mt-6 text-sm text-gray-600">
             <p>• 전체 탭에서는 모든 기관의 예산 합계를 확인할 수 있습니다.</p>
             <p>• 기관별 탭에서는 해당 기관의 예산을 수정할 수 있습니다.</p>
-            <p>• 직접비/간접비 헤더의 + 버튼을 클릭하여 새로운 예산 항목을 바로 추가할 수 있습니다.</p>
-            <p>• 추가된 항목명을 클릭하여 이름을 수정할 수 있습니다.</p>
-            <p>• 현금: 실제 지출되는 현금 예산</p>
-            <p>• 현물: 기관에서 제공하는 현물 기여분</p>
-            <p>• 직접비와 간접비를 구분하여 관리됩니다.</p>
           </div>
         </CardContent>
       </Card>

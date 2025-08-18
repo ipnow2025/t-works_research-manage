@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, Plus, Edit, Trash2, Eye } from "lucide-react"
+import { Search, Plus, Edit, Trash2, Eye, Building, DollarSign, Users, FileText } from "lucide-react"
 import { apiFetch } from "@/lib/func"
 import { formatDateString, formatTimestamp } from "@/lib/utils"
 import { Pagination } from "@/components/ui/pagination"
@@ -43,11 +43,19 @@ interface ProjectPlanning {
   lead_organization?: string
 }
 
+interface DashboardStats {
+  totalProjects: number
+  totalDepartments: number
+  totalProjectManagers: number
+  totalBudget: number
+}
+
 export default function PlanningPage() {
   const router = useRouter()
   const [planningProjects, setPlanningProjects] = useState<ProjectPlanning[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
+  const [selectedType, setSelectedType] = useState("all")
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [projectToDelete, setProjectToDelete] = useState<ProjectPlanning | null>(null)
   const [newProjectDialogOpen, setNewProjectDialogOpen] = useState(false)
@@ -81,7 +89,20 @@ export default function PlanningPage() {
 
   useEffect(() => {
     fetchProjects()
-  }, [searchTerm]) // searchTerm이 변경될 때마다 프로젝트를 다시 가져옴
+  }, [searchTerm, selectedType])
+
+  // 대시보드 통계 계산
+  const calculateStats = (): DashboardStats => {
+    const stats: DashboardStats = {
+      totalProjects: planningProjects.length,
+      totalDepartments: new Set(planningProjects.map(p => p.department).filter(Boolean)).size,
+      totalProjectManagers: new Set(planningProjects.map(p => p.project_manager).filter(Boolean)).size,
+      totalBudget: planningProjects.reduce((sum, p) => sum + (p.total_cost || 0), 0)
+    }
+    return stats
+  }
+
+  const stats = calculateStats()
 
   // 프로젝트 삭제
   const handleDeleteProject = async () => {
@@ -159,12 +180,33 @@ export default function PlanningPage() {
     }
   }
 
+  // 검색 필터에 따른 플레이스홀더 반환
+  const getSearchPlaceholder = (filterType: string) => {
+    switch (filterType) {
+      case "project_name":
+        return "과제명으로 검색..."
+      case "project_manager":
+        return "연구책임자명으로 검색..."
+      case "lead_organization":
+        return "주관기관명으로 검색..."
+      case "start_year":
+        return "시작 연도로 검색... (예: 2024)"
+      default:
+        return "과제명으로 검색..."
+    }
+  }
+
   const formatBudget = (amount: number) => {
-    return new Intl.NumberFormat("ko-KR", {
-      style: "currency",
-      currency: "KRW",
-      maximumFractionDigits: 0,
-    }).format(amount * 1000) // 천원 단위로 저장되어 있으므로 1000을 곱함
+    // 천원 단위를 원 단위로 변환
+    const amountInWon = amount * 1000
+    
+    if (amountInWon >= 100000000) {
+      return `${(amountInWon / 100000000).toFixed(1)}억원`
+    } else if (amountInWon >= 10000) {
+      return `${(amountInWon / 10000).toFixed(0)}만원`
+    } else {
+      return `${amountInWon.toLocaleString()}원`
+    }
   }
 
   const formatDateString = (dateString: string) => {
@@ -215,18 +257,96 @@ export default function PlanningPage() {
       </div>
 
       {/* 메인 컨텐츠 */}
-      <main className="flex-1 p-6">
-        <div className="space-y-6">
+      <main className="flex-1 p-8">
+        <div className="space-y-8">
 
-          {/* 검색 */}
-          {/* <Card>
-            <CardContent className="p-6">
-              <div className="flex flex-col sm:flex-row gap-4">
-                <div className="flex-1">
+          {/* 통계 카드 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <Card className="border-l-4 border-l-yellow-500">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  총 기획/신청 과제
+                </CardTitle>
+                <FileText className="h-4 w-4 text-yellow-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-yellow-600">{stats.totalProjects}개</div>
+                <p className="text-xs text-muted-foreground">기획/신청 중인 과제</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-l-4 border-l-indigo-500">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  주관부처
+                </CardTitle>
+                <Building className="h-4 w-4 text-indigo-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-indigo-600">{stats.totalDepartments}개</div>
+                <p className="text-xs text-muted-foreground">전체 주관부처 종류</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-l-4 border-l-orange-500">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  연구책임자
+                </CardTitle>
+                <Users className="h-4 w-4 text-orange-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-orange-600">{stats.totalProjectManagers}명</div>
+                <p className="text-xs text-muted-foreground">전체 연구책임자 종류</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-l-4 border-l-purple-500">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  총 예산
+                </CardTitle>
+                <DollarSign className="h-4 w-4 text-purple-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-purple-600">{formatBudget(stats.totalBudget)}</div>
+                <p className="text-xs text-muted-foreground">총 과제 예산</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* 검색 및 필터 */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">검색 및 필터</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* 필터와 검색을 한 줄에 배치 */}
+              <div className="flex flex-col md:flex-row gap-4">
+                {/* 필터 - 25% 비율 */}
+                <div className="w-full md:flex-shrink-0 md:w-64 space-y-2">
+                  <label className="text-sm font-medium text-muted-foreground">검색 필터</label>
+                  <Select value={selectedType} onValueChange={setSelectedType}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="검색 필터 선택" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">전체</SelectItem>
+                      <SelectItem value="project_name">과제명</SelectItem>
+                      <SelectItem value="project_manager">연구책임자</SelectItem>
+                      <SelectItem value="lead_organization">주관기관</SelectItem>
+                      <SelectItem value="start_year">연도별</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* 검색 - 75% 비율 */}
+                <div className="w-full md:flex-1 space-y-2">
+                  <label className="text-sm font-medium text-muted-foreground">검색</label>
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />  
                     <Input
-                      placeholder="과제명, 연구책임자, 주관기관으로 검색..."
+                      placeholder={getSearchPlaceholder(selectedType)}
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       className="pl-10"
@@ -235,8 +355,7 @@ export default function PlanningPage() {
                 </div>
               </div>
             </CardContent>
-          </Card> */}
-
+          </Card>
           {/* 프로젝트 목록 */}
           <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div className="space-y-4 p-6">

@@ -152,7 +152,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
       <div className="container mx-auto px-4 py-8">
         <div className="text-center">
           <p>프로젝트를 찾을 수 없습니다.</p>
-          <Button onClick={() => router.push('/completed')} className="mt-4">
+          <Button onClick={() => router.push('/completed/overview')} className="mt-4">
             완료/미선정 목록으로 돌아가기
           </Button>
         </div>
@@ -161,13 +161,13 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 max-w-none">
       {/* 헤더 */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
           <Button
             variant="outline"
-            onClick={() => router.push('/completed')}
+            onClick={() => router.push('/completed/overview')}
             className="flex items-center gap-2"
           >
             <ArrowLeft className="w-4 h-4" />

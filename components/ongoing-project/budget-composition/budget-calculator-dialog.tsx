@@ -19,29 +19,29 @@ interface BudgetCalculatorDialogProps {
 
 // 예산 카테고리별 기본 비율
 const DEFAULT_CATEGORY_RATIOS = {
-  studentPersonnel: 15, // 학생인건비
-  researchFacilities: 25, // 연구시설·장비비
-  researchMaterials: 20, // 연구재료비
-  researchActivities: 15, // 연구활동비
-  contractedRD: 5, // 위탁연구개발비
-  internationalJointRD: 5, // 국제공동연구개발비
-  researchProjectPromotion: 8, // 연구과제추진비
-  researchAllowance: 2, // 연구수당
-  researchCosts: 3, // 연구비
-  indirectCosts: 2, // 간접비
+  personnel: 20, // 인건비
+  studentPersonnel: 12, // 학생인건비
+  researchFacilities: 18, // 연구시설·장비비
+  researchMaterials: 15, // 연구재료비
+  contractedRD: 8, // 위탁연구개발비
+  internationalJointRD: 6, // 국제공동연구개발비
+  researchDevelopmentBurden: 5, // 연구개발부담비
+  researchActivities: 10, // 연구활동비
+  researchAllowance: 3, // 연구수당
+  indirectCosts: 3, // 간접비
 }
 
 // 카테고리 이름 매핑
 const CATEGORY_NAMES: Record<string, string> = {
+  personnel: "인건비",
   studentPersonnel: "학생인건비",
   researchFacilities: "연구시설·장비비",
   researchMaterials: "연구재료비",
-  researchActivities: "연구활동비",
   contractedRD: "위탁연구개발비",
   internationalJointRD: "국제공동연구개발비",
-  researchProjectPromotion: "연구과제추진비",
+  researchDevelopmentBurden: "연구개발부담비",
+  researchActivities: "연구활동비",
   researchAllowance: "연구수당",
-  researchCosts: "연구비",
   indirectCosts: "간접비",
 }
 
@@ -68,7 +68,7 @@ export function BudgetCalculatorDialog({ open, onOpenChange, onApplyTemplate, pr
   const [institution1Amount, setInstitution1Amount] = useState("600000") // 금액 방식용
   const [institution2Amount, setInstitution2Amount] = useState("400000") // 금액 방식용
   const [projectDuration, setProjectDuration] = useState(12) // 기본 12개월
-  const [yearlyDistribution, setYearlyDistribution] = useState("균등") // 연차별 분배 방식
+  const [yearlyDistribution, setYearlyDistribution] = useState("균등") // 배분 방식
   const [categoryRatios, setCategoryRatios] = useState<CategoryRatios>(DEFAULT_CATEGORY_RATIOS)
   const [yearlyCustomRatios, setYearlyCustomRatios] = useState<number[]>([]) // 사용자 정의 연차별 비율
   const [isSaving, setIsSaving] = useState(false) // 저장 중 상태
@@ -494,7 +494,7 @@ export function BudgetCalculatorDialog({ open, onOpenChange, onApplyTemplate, pr
                 </div>
                 <div>
                   <Label htmlFor="total-budget" className="text-gray-700">
-                    총 사업비 (천원)
+                    정부 사업비 (천원)
                   </Label>
                   <Input
                     id="total-budget"
@@ -521,7 +521,7 @@ export function BudgetCalculatorDialog({ open, onOpenChange, onApplyTemplate, pr
                 </div>
                 <div>
                   <Label htmlFor="yearly-distribution" className="text-gray-700">
-                    연차별 분배
+                    배분 방식
                   </Label>
                   <Select value={yearlyDistribution} onValueChange={setYearlyDistribution}>
                     <SelectTrigger className="mt-1">
@@ -584,7 +584,7 @@ export function BudgetCalculatorDialog({ open, onOpenChange, onApplyTemplate, pr
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <Card className="bg-blue-50 border-blue-200">
                 <CardContent className="p-4 text-center">
-                  <div className="text-blue-600 text-sm mb-1">총사업비</div>
+                  <div className="text-blue-600 text-sm mb-1">정부 사업비</div>
                   <div className="text-blue-700 text-lg font-bold">
                     {results.totalBudget.toLocaleString()}
                     {unit}
@@ -674,10 +674,10 @@ export function BudgetCalculatorDialog({ open, onOpenChange, onApplyTemplate, pr
                   <thead>
                     <tr className="border-b border-gray-200">
                       <th className="text-left py-2 text-gray-700">연차</th>
-                      <th className="text-left py-2 text-gray-700">총액</th>
-                      <th className="text-left py-2 text-gray-700">정부지원금</th>
-                      <th className="text-left py-2 text-gray-700">민간현금</th>
-                      <th className="text-left py-2 text-gray-700">민간현물</th>
+                      <th className="text-left py-2 text-gray-700">총사업비</th>
+                      <th className="text-left py-2 text-gray-700">정부사업비</th>
+                      <th className="text-left py-2 text-gray-700">민간부담금 중 현금</th>
+                      <th className="text-left py-2 text-gray-700">민간부담금 중 현물</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -735,10 +735,10 @@ export function BudgetCalculatorDialog({ open, onOpenChange, onApplyTemplate, pr
                     <tr className="border-b border-gray-200">
                       <th className="text-left py-2 text-gray-700">카테고리</th>
                       <th className="text-left py-2 text-gray-700">비율 (%)</th>
-                      <th className="text-left py-2 text-gray-700">총액</th>
-                      <th className="text-left py-2 text-gray-700">정부지원금</th>
-                      <th className="text-left py-2 text-gray-700">민간현금</th>
-                      <th className="text-left py-2 text-gray-700">민간현물</th>
+                      <th className="text-left py-2 text-gray-700">총사업비</th>
+                      <th className="text-left py-2 text-gray-700">정부사업비</th>
+                      <th className="text-left py-2 text-gray-700">민간부담금 중 현금</th>
+                      <th className="text-left py-2 text-gray-700">민간부담금 중 현물</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -873,10 +873,10 @@ export function BudgetCalculatorDialog({ open, onOpenChange, onApplyTemplate, pr
                         <th className="text-left py-2 text-gray-700">
                           {distributionMethod === "비율" ? "배분비율" : "배분금액"}
                         </th>
-                        <th className="text-left py-2 text-gray-700">총액</th>
-                        <th className="text-left py-2 text-gray-700">정부지원금</th>
-                        <th className="text-left py-2 text-gray-700">민간현금</th>
-                        <th className="text-left py-2 text-gray-700">민간현물</th>
+                        <th className="text-left py-2 text-gray-700">총사업비</th>
+                        <th className="text-left py-2 text-gray-700">정부사업비</th>
+                        <th className="text-left py-2 text-gray-700">민간부담금 중 현금</th>
+                        <th className="text-left py-2 text-gray-700">민간부담금 중 현물</th>
                       </tr>
                     </thead>
                     <tbody>

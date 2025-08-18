@@ -151,7 +151,7 @@ export function KPI({ project }: KPIProps) {
   const handleTypeSubmit = async () => {
     try {
       if (!typeFormData.name) {
-        toast.error('목표 타입 이름을 입력해주세요.')
+        toast.error('총 사업 목표 이름을 입력해주세요.')
         return
       }
 
@@ -167,18 +167,18 @@ export function KPI({ project }: KPIProps) {
       })
 
       if (response.ok) {
-        toast.success('목표 타입이 저장되었습니다.')
+        toast.success('총 사업 목표이 저장되었습니다.')
         setShowTypeDialog(false)
         setTypeFormData({ name: "", description: "", unit: "" })
         setEditingType(null)
         fetchKpiTypes()
       } else {
         const errorData = await response.json()
-        toast.error(errorData.error || '목표 타입 저장에 실패했습니다.')
+        toast.error(errorData.error || '총 사업 목표 저장에 실패했습니다.')
       }
     } catch (error) {
       console.error('KPI 타입 저장 오류:', error)
-      toast.error('목표 타입 저장 중 오류가 발생했습니다.')
+      toast.error('총 사업 목표 저장 중 오류가 발생했습니다.')
     }
   }
 
@@ -186,7 +186,7 @@ export function KPI({ project }: KPIProps) {
   const handleGoalSubmit = async () => {
     try {
       if (!goalFormData.kpiType || !goalFormData.targetValue) {
-        toast.error('목표 타입과 목표값을 입력해주세요.')
+        toast.error('총 사업 목표과 목표값을 입력해주세요.')
         return
       }
 
@@ -233,7 +233,7 @@ export function KPI({ project }: KPIProps) {
   const handleResultSubmit = async () => {
     try {
       if (!resultFormData.kpiType || !resultFormData.actualValue) {
-        toast.error('목표 타입과 실적값을 입력해주세요.')
+        toast.error('총 사업 목표과 실적값을 입력해주세요.')
         return
       }
 
@@ -437,7 +437,7 @@ export function KPI({ project }: KPIProps) {
             ))}
             {kpiTypes.length === 0 && (
               <div className="col-span-full text-center py-8 text-muted-foreground">
-                등록된 목표 타입이 없습니다.
+                등록된 총 사업 목표이 없습니다.
               </div>
             )}
           </div>
@@ -603,7 +603,7 @@ export function KPI({ project }: KPIProps) {
             })}
             {kpiTypes.length === 0 && (
               <div className="text-center py-8 text-muted-foreground">
-                목표 타입을 먼저 추가해주세요.
+                총 사업 목표을 먼저 추가해주세요.
               </div>
             )}
           </div>
@@ -615,12 +615,12 @@ export function KPI({ project }: KPIProps) {
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>
-              {editingType ? '목표 타입 수정' : '새 목표 타입 추가'}
+              {editingType ? '총 사업 목표 수정' : '새 총 사업 목표 추가'}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label htmlFor="type-name">목표 타입명 *</Label>
+              <Label htmlFor="type-name">총 사업 목표명 *</Label>
               <Input
                 id="type-name"
                 value={typeFormData.name}
@@ -634,7 +634,7 @@ export function KPI({ project }: KPIProps) {
                 id="type-description"
                 value={typeFormData.description}
                 onChange={(e) => setTypeFormData(prev => ({ ...prev, description: e.target.value }))}
-                placeholder="목표 타입에 대한 설명을 입력하세요"
+                placeholder="총 사업 목표에 대한 설명을 입력하세요"
                 rows={3}
               />
             </div>
@@ -687,13 +687,13 @@ export function KPI({ project }: KPIProps) {
               </Select>
             </div>
             <div>
-              <Label htmlFor="goal-type">목표 타입 *</Label>
+              <Label htmlFor="goal-type">총 사업 목표 *</Label>
               <Select 
                 value={goalFormData.kpiType} 
                 onValueChange={(value) => setGoalFormData(prev => ({ ...prev, kpiType: value }))}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="목표 타입을 선택하세요" />
+                  <SelectValue placeholder="총 사업 목표을 선택하세요" />
                 </SelectTrigger>
                 <SelectContent>
                   {kpiTypes.map((type) => (
@@ -764,13 +764,13 @@ export function KPI({ project }: KPIProps) {
               </Select>
             </div>
             <div>
-              <Label htmlFor="result-type">목표 타입 *</Label>
+              <Label htmlFor="result-type">총 사업 목표 *</Label>
               <Select 
                 value={resultFormData.kpiType} 
                 onValueChange={(value) => setResultFormData(prev => ({ ...prev, kpiType: value }))}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="목표 타입을 선택하세요" />
+                  <SelectValue placeholder="총 사업 목표을 선택하세요" />
                 </SelectTrigger>
                 <SelectContent>
                   {kpiTypes.map((type) => (

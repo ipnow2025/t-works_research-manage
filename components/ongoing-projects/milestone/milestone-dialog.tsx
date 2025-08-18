@@ -134,7 +134,7 @@ export function MilestoneDialog({
     const { name, value } = e.target
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'progress_percentage' ? parseInt(value) || 0 : value
+      [name]: name === 'progress_percentage' ? (value === '' ? 0 : parseInt(value) || 0) : value
     }))
   }
 
@@ -239,7 +239,7 @@ export function MilestoneDialog({
             <input
               type="number"
               name="progress_percentage"
-              value={formData.progress_percentage}
+              value={formData.progress_percentage.toString()}
               onChange={handleInputChange}
               min="0"
               max="100"

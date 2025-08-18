@@ -16,33 +16,12 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // 페이징 파라미터 처리
+    // 검색 파라미터 처리 (페이지네이션 제거)
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '10');
-    const search = searchParams.get('search') || '';
     const statusParam = searchParams.get('status') || 'DRAFT'; // 기본값은 DRAFT
-    const department = searchParams.get('department') || '';
 
     // 상태 파라미터 처리 (쉼표로 구분된 여러 상태 지원)
     const statuses = statusParam.split(',').map(s => s.trim()).filter(s => s);
-
-    // 유효성 검증
-    if (page < 1) {
-      return NextResponse.json(
-        { success: false, error: '페이지 번호는 1 이상이어야 합니다.' },
-        { status: 400 }
-      );
-    }
-
-    if (limit < 1 || limit > 100) {
-      return NextResponse.json(
-        { success: false, error: '페이지 크기는 1~100 사이여야 합니다.' },
-        { status: 400 }
-      );
-    }
-
-    const skip = (page - 1) * limit;
 
     // WHERE 조건 구성
     const where: any = { 
@@ -57,24 +36,7 @@ export async function GET(request: NextRequest) {
       where.status = { in: statuses };
     }
 
-    // 검색 조건 추가
-    if (search) {
-      where.OR = [
-        { projectName: { contains: search } },
-        { projectManager: { contains: search } },
-        { department: { contains: search } },
-        { institution: { contains: search } }
-      ];
-    }
-
-    if (department) {
-      where.department = department;
-    }
-
-    // 전체 개수 조회
-    const totalCount = await prisma.projectPlanning.count({ where });
-
-    // 페이징된 데이터 조회
+    // 전체 데이터 조회 (페이지네이션 없음)
     const projects = await prisma.projectPlanning.findMany({
       where,
       include: {
@@ -85,9 +47,7 @@ export async function GET(request: NextRequest) {
           }
         }
       },
-      orderBy: { regDate: 'desc' },
-      skip,
-      take: limit
+      orderBy: { regDate: 'desc' }
     });
     
     // 주관기관 정보를 lead_organization로 변환하고 필드명을 snake_case로 변환
@@ -116,22 +76,10 @@ export async function GET(request: NextRequest) {
       lead_organization: project.consortiumOrgs[0]?.organizationName || null
     }));
     
-    // 페이징 정보 계산
-    const totalPages = Math.ceil(totalCount / limit);
-    const hasNextPage = page < totalPages;
-    const hasPrevPage = page > 1;
-    
     return NextResponse.json({
       success: true,
       data: projectsWithLeadOrg,
-      pagination: {
-        current_page: page,
-        total_pages: totalPages,
-        total_count: totalCount,
-        limit,
-        has_next_page: hasNextPage,
-        has_prev_page: hasPrevPage
-      }
+      total_count: projectsWithLeadOrg.length
     });
     
   } catch (error) {
