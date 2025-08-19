@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ArrowLeft, Save } from "lucide-react"
+import { ArrowLeft, ChevronLeft, Save } from "lucide-react"
 import { apiFetch } from "@/lib/func"
 
 interface ProjectPlanning {
@@ -161,21 +161,20 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 max-w-none">
       {/* 헤더 */}
       <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="outline"
+        <div className="flex flex-col">
+          <button
             onClick={() => router.push('/ongoing')}
-            className="flex items-center gap-2"
+            className="text-muted-foreground hover:text-foreground flex items-center gap-1 mb-2"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ChevronLeft className="h-4 w-4" />
             진행중 과제 목록으로 돌아가기
-          </Button>
+          </button>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">프로젝트 수정</h1>
-            <p className="text-gray-600 mt-2">프로젝트 정보를 수정합니다.</p>
+            <h1 className="text-2xl font-bold tracking-tight mb-2">프로젝트 수정</h1>
+            <p className="text-sm text-muted-foreground">프로젝트 정보를 수정합니다.</p>
           </div>
         </div>
         <Button
