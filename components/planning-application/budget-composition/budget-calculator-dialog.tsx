@@ -201,12 +201,6 @@ export function BudgetCalculatorDialog({ open, onOpenChange, onApplyTemplate, pr
             <CardContent>
               <div className="grid grid-cols-4 gap-4">
                 <div className="text-center">
-                    <div className="text-blue-600 text-sm mb-1">총 연구개발비</div>
-                  <div className="text-blue-700 text-xl font-bold">
-                    {results.totalRD.toLocaleString()}천원
-                    </div>
-              </div>
-                <div className="text-center">
                   <div className="text-green-600 text-sm mb-1">정부지원예산</div>
                   <div className="text-green-700 text-xl font-bold">
                     {results.government.toLocaleString()}천원
@@ -224,6 +218,12 @@ export function BudgetCalculatorDialog({ open, onOpenChange, onApplyTemplate, pr
                     {results.privateInkind.toLocaleString()}천원
                            </div>
                        </div>
+                <div className="text-center">
+                    <div className="text-blue-600 text-sm mb-1">총 연구개발비</div>
+                  <div className="text-blue-700 text-xl font-bold">
+                    {results.totalRD.toLocaleString()}천원
+                    </div>
+              </div>
               </div>
             </CardContent>
           </Card>

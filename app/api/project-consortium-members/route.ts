@@ -6,7 +6,7 @@ import { getMemberInfoFromRequest } from '@/lib/server_func'
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const projectId = searchParams.get('projectId')
+    const projectId = searchParams.get('projectId') || searchParams.get('projectPlanningId')
     const organizationId = searchParams.get('organizationId')
     const year = searchParams.get('year') || '1' // 연차별 필터링
     

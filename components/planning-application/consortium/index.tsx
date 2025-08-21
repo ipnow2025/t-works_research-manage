@@ -384,6 +384,60 @@ export function Consortium({ project, onConsortiumChange }: ConsortiumProps) {
     return []
   })
 
+  // 컴포넌트 마운트 시 기존 데이터 로드 및 부모에게 알림
+  useEffect(() => {
+    if (project?.id) {
+      console.log('컨소시엄 컴포넌트 마운트 시 기존 데이터 로드 시작', { projectId: project.id, project });
+      
+      // 1차년도 데이터 로드
+      fetchConsortiumOrganizations(project.id, 1).then(() => {
+        console.log('fetchConsortiumOrganizations 완료, 부모에게 데이터 전달 시도');
+        // 데이터 로드 완료 후 부모에게 알림
+        if (onConsortiumChangeRef.current) {
+          const currentOrgs = projectType === "multi" ? 
+            (yearlyOrganizations[1] || []) : 
+            (organizations || []);
+          
+          console.log('부모에게 전달할 데이터:', { currentOrgs, projectType, projectDuration });
+          
+          onConsortiumChangeRef.current({
+            projectType,
+            projectDuration,
+            organizations: currentOrgs,
+            yearlyOrganizations: projectType === "multi" ? { 1: currentOrgs } : undefined
+          });
+        }
+      });
+    } else {
+      console.log('프로젝트 ID가 없음:', project);
+    }
+  }, [project?.id]);
+
+  // organizations 또는 yearlyOrganizations 변경 시 부모에게 알림
+  useEffect(() => {
+    if (onConsortiumChangeRef.current && project?.id) {
+      const currentOrgs = projectType === "multi" ? 
+        (yearlyOrganizations[1] || []) : 
+        (organizations || []);
+      
+      if (currentOrgs.length > 0) {
+        onConsortiumChangeRef.current({
+          projectType,
+          projectDuration,
+          organizations: currentOrgs,
+          yearlyOrganizations: projectType === "multi" ? { 1: currentOrgs } : undefined
+        });
+        
+        console.log('컨소시엄 데이터 부모에게 전달 완료:', {
+          projectType,
+          projectDuration,
+          organizations: currentOrgs.length,
+          yearlyOrganizations: projectType === "multi" ? { 1: currentOrgs.length } : undefined
+        });
+      }
+    }
+  }, [organizations, yearlyOrganizations, projectType, projectDuration, project?.id]);
+
   const [editingMember, setEditingMember] = useState<string | null>(null)
   const [editingOrgs, setEditingOrgs] = useState<string[]>([])
   const [editForm, setEditForm] = useState<any>({})
@@ -1034,7 +1088,7 @@ export function Consortium({ project, onConsortiumChange }: ConsortiumProps) {
   const fetchConsortiumMembers = async (projectId: number, year: number = 1) => {
     try {
       
-      const response = await apiFetch(`/api/project-consortium-members?projectId=${projectId}&year=${year}`)
+      const response = await apiFetch(`/api/project-consortium-members?projectPlanningId=${projectId}&year=${year}`)
       const result = await response.json()
             
       if (result.success) {
@@ -1087,13 +1141,19 @@ export function Consortium({ project, onConsortiumChange }: ConsortiumProps) {
   // 컨소시엄 기관 데이터 가져오기
   const fetchConsortiumOrganizations = async (projectId: number, year: number = 1) => {
     try {
+      console.log(`fetchConsortiumOrganizations 시작: projectId=${projectId}, year=${year}`);
       setLoading(true)
       
       // 편집 상태 초기화 (데이터 새로고침 시 깨끗한 상태로 시작)
       setEditingOrgs([])
       
-      const response = await apiFetch(`/api/project-consortium-organizations?projectId=${projectId}&year=${year}`)
+      const apiUrl = `/api/project-consortium-organizations?projectPlanningId=${projectId}&year=${year}`;
+      console.log('API 호출 URL:', apiUrl);
+      
+      const response = await apiFetch(apiUrl)
       const result = await response.json()
+      
+      console.log('API 응답:', result);
             
       if (result.success) {
         const newOrganizations = result.data.map((org: any) => ({
@@ -1106,10 +1166,13 @@ export function Consortium({ project, onConsortiumChange }: ConsortiumProps) {
           members: [], // 구성원은 별도 API로 가져와야 함
           isNew: false
         }))
+        
+        console.log('변환된 기관 데이터:', newOrganizations);
                 
         if (projectType === "multi") {
           // 저장 완료 후에는 isNew가 true인 기관들을 모두 제거 (저장된 기관만 유지)
           const savedOrgs = newOrganizations.filter((org: Organization) => !org.isNew)
+          console.log('멀티 연차 - 저장된 기관들:', savedOrgs);
           setYearOrganizations(year, savedOrgs)
           // 기관 데이터 설정 후 구성원 데이터 가져오기
           if (savedOrgs.length > 0) {
@@ -1119,6 +1182,7 @@ export function Consortium({ project, onConsortiumChange }: ConsortiumProps) {
         } else {
           // 저장 완료 후에는 isNew가 true인 기관들을 모두 제거 (저장된 기관만 유지)
           const savedOrgs = newOrganizations.filter((org: Organization) => !org.isNew)
+          console.log('단년도 - 저장된 기관들:', savedOrgs);
           setOrganizations(savedOrgs)
           // 기관 데이터 설정 후 구성원 데이터 가져오기
           if (savedOrgs.length > 0) {
@@ -1126,6 +1190,8 @@ export function Consortium({ project, onConsortiumChange }: ConsortiumProps) {
             await fetchConsortiumMembersWithOrgs(projectId, year, savedOrgs)
           }
         }
+      } else {
+        console.log('API 응답 실패:', result);
       }
     } catch (error) {
       console.error('컨소시엄 기관 조회 오류:', error)
@@ -1139,7 +1205,7 @@ export function Consortium({ project, onConsortiumChange }: ConsortiumProps) {
     try {
       console.log(`fetchConsortiumMembersWithOrgs 시작: projectId=${projectId}, year=${year}, orgs=${orgs.length}개`);
       
-      const response = await apiFetch(`/api/project-consortium-members?projectId=${projectId}&year=${year}`)
+      const response = await apiFetch(`/api/project-consortium-members?projectPlanningId=${projectId}&year=${year}`)
       const result = await response.json()
       
       console.log(`${year}차년도 구성원 데이터 응답:`, result);
