@@ -76,6 +76,191 @@ export function NewProjectDialog({ open, onOpenChange, onProjectCreated }: NewPr
     expectedPapers: "",
   })
 
+  // 날짜 입력 핸들러 - 연도 6자리 문제 해결
+  const handleDateChange = (field: keyof ProjectFormData, value: string) => {
+    // 빈 값이면 그대로 설정
+    if (!value) {
+      setFormData(prev => ({ ...prev, [field]: value }));
+      return;
+    }
+
+    // 8자리 숫자만 입력된 경우 자동으로 YYYY-MM-DD 형식으로 변환
+    if (/^\d{8}$/.test(value)) {
+      const year = value.substring(0, 4);
+      const month = value.substring(4, 6);
+      const day = value.substring(6, 8);
+      
+      // 유효한 날짜인지 검증
+      const date = new Date(`${year}-${month}-${day}`);
+      if (!isNaN(date.getTime())) {
+        const formattedValue = `${year}-${month}-${day}`;
+        setFormData(prev => ({ ...prev, [field]: formattedValue }));
+        return;
+      }
+    }
+
+    // 6자리 숫자 입력 시 (예: 202222) 자동으로 4자리 연도로 수정
+    if (/^\d{6}$/.test(value)) {
+      const year = value.substring(0, 4);
+      const month = value.substring(4, 6);
+      const correctedValue = `${year}-${month}-`;
+      setFormData(prev => ({ ...prev, [field]: correctedValue }));
+      return;
+    }
+
+    // 4자리 숫자 입력 시 (예: 2024) 자동으로 하이픈 추가
+    if (/^\d{4}$/.test(value)) {
+      const correctedValue = `${value}-`;
+      setFormData(prev => ({ ...prev, [field]: correctedValue }));
+      return;
+    }
+
+    // YYYY-MM-DD 형식 검증
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(value)) {
+      // 잘못된 형식이면 입력을 차단
+      return;
+    }
+
+    // 연도가 4자리가 아닌 경우 수정
+    const [year, month, day] = value.split('-');
+    if (year.length !== 4) {
+      // 연도가 4자리가 아니면 수정
+      const correctedYear = year.padStart(4, '0').slice(0, 4);
+      const correctedValue = `${correctedYear}-${month}-${day}`;
+      setFormData(prev => ({ ...prev, [field]: correctedValue }));
+      return;
+    }
+
+    // 유효한 날짜인지 검증
+    const date = new Date(value);
+    if (isNaN(date.getTime())) {
+      return;
+    }
+
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  // 날짜 입력 필드 실시간 검증 및 수정
+  const handleDateInput = (e: React.FormEvent<HTMLInputElement>) => {
+    const input = e.currentTarget;
+    const value = input.value;
+    const field = input.name as keyof ProjectFormData;
+    
+    // 숫자만 입력된 경우 자동 형식 변환
+    if (/^\d+$/.test(value)) {
+      if (value.length === 4) {
+        // 4자리 연도 입력 시 하이픈 추가
+        const correctedValue = `${value}-`;
+        setFormData(prev => ({ ...prev, [field]: correctedValue }));
+        input.setSelectionRange(5, 5); // 하이픈 다음 위치로 커서 이동
+        return;
+      } else if (value.length === 6) {
+        // 6자리 입력 시 (예: 202222) 4자리 연도 + 2자리 월로 변환
+        const year = value.substring(0, 4);
+        const month = value.substring(4, 6);
+        const correctedValue = `${year}-${month}-`;
+        setFormData(prev => ({ ...prev, [field]: correctedValue }));
+        input.setSelectionRange(8, 8); // 일 입력 위치로 커서 이동
+        return;
+      } else if (value.length === 8) {
+        // 8자리 입력 시 YYYY-MM-DD 형식으로 변환
+        const year = value.substring(0, 4);
+        const month = value.substring(4, 6);
+        const day = value.substring(6, 8);
+        const correctedValue = `${year}-${month}-${day}`;
+        setFormData(prev => ({ ...prev, [field]: correctedValue }));
+        input.setSelectionRange(correctedValue.length, correctedValue.length);
+        return;
+      }
+    }
+  };
+
+  // 날짜 입력 필드 키 입력 제한 및 자동 포커스 이동
+  const handleDateKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const input = e.currentTarget;
+    const value = input.value;
+    
+    // 숫자, 하이픈, 백스페이스, 삭제, 화살표 키만 허용
+    const allowedKeys = [
+      '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+      '-', 'Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown',
+      'Tab', 'Enter'
+    ];
+    
+    if (!allowedKeys.includes(e.key)) {
+      e.preventDefault();
+      return;
+    }
+
+    // 연도 입력 완료 시 자동으로 월 입력 필드로 이동
+    if (e.key >= '0' && e.key <= '9') {
+      const currentValue = value + e.key;
+      
+      // 연도 부분만 확인 (첫 번째 하이픈 이전)
+      const yearPart = currentValue.split('-')[0];
+      
+      if (yearPart.length === 4) {
+        // 연도가 4자리가 되면 자동으로 하이픈 추가하고 월 입력 필드로 포커스
+        setTimeout(() => {
+          const newValue = currentValue + '-';
+          setFormData(prev => ({ ...prev, [input.name as keyof ProjectFormData]: newValue }));
+          
+          // 커서를 월 입력 필드로 이동 (하이픈 다음 위치)
+          input.setSelectionRange(5, 5);
+        }, 0);
+      }
+
+      // 8자리 숫자 입력 완료 시 자동으로 YYYY-MM-DD 형식으로 변환
+      if (currentValue.length === 8 && /^\d{8}$/.test(currentValue)) {
+        setTimeout(() => {
+          const year = currentValue.substring(0, 4);
+          const month = currentValue.substring(4, 6);
+          const day = currentValue.substring(6, 8);
+          
+          // 유효한 날짜인지 검증
+          const date = new Date(`${year}-${month}-${day}`);
+          if (!isNaN(date.getTime())) {
+            const formattedValue = `${year}-${month}-${day}`;
+            setFormData(prev => ({ ...prev, [input.name as keyof ProjectFormData]: formattedValue }));
+            
+            // 커서를 끝에 위치
+            input.setSelectionRange(formattedValue.length, formattedValue.length);
+          }
+        }, 0);
+      }
+    }
+  };
+
+  // 날짜 입력 필드 포커스 핸들러
+  const handleDateFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    const input = e.currentTarget;
+    const value = input.value;
+    
+    // 값이 없으면 연도 입력 필드에 포커스
+    if (!value) {
+      input.setSelectionRange(0, 0);
+    } else {
+      // 값이 있으면 적절한 위치에 포커스
+      const parts = value.split('-');
+      if (parts.length === 3) {
+        if (parts[0].length < 4) {
+          // 연도가 불완전하면 연도 끝에 포커스
+          input.setSelectionRange(parts[0].length, parts[0].length);
+        } else if (parts[1].length < 2) {
+          // 월이 불완전하면 월 시작에 포커스
+          input.setSelectionRange(5, 5);
+        } else if (parts[2].length < 2) {
+          // 일이 불완전하면 일 시작에 포커스
+          input.setSelectionRange(8, 8);
+        } else {
+          // 모든 필드가 완성되면 끝에 포커스
+          input.setSelectionRange(value.length, value.length);
+        }
+      }
+    }
+  };
+
   const steps = [
     { number: 1, title: "참여유형", completed: currentStep > 1 },
     { number: 2, title: "기본정보", completed: currentStep > 2 },
@@ -392,9 +577,16 @@ export function NewProjectDialog({ open, onOpenChange, onProjectCreated }: NewPr
                   </Label>
                   <Input
                     id="announcementStartDate"
+                    name="announcementStartDate"
                     type="date"
                     value={formData.announcementStartDate}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, announcementStartDate: e.target.value }))}
+                    onChange={(e) => handleDateChange("announcementStartDate", e.target.value)}
+                    onKeyDown={handleDateKeyDown}
+                    onFocus={handleDateFocus}
+                    onInput={handleDateInput}
+                    pattern="\d{4}-\d{2}-\d{2}"
+                    maxLength={10}
+                    placeholder="YYYY-MM-DD"
                   />
                 </div>
                 <div>
@@ -403,9 +595,16 @@ export function NewProjectDialog({ open, onOpenChange, onProjectCreated }: NewPr
                   </Label>
                   <Input
                     id="announcementEndDate"
+                    name="announcementEndDate"
                     type="date"
                     value={formData.announcementEndDate}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, announcementEndDate: e.target.value }))}
+                    onChange={(e) => handleDateChange("announcementEndDate", e.target.value)}
+                    onKeyDown={handleDateKeyDown}
+                    onFocus={handleDateFocus}
+                    onInput={handleDateInput}
+                    pattern="\d{4}-\d{2}-\d{2}"
+                    maxLength={10}
+                    placeholder="YYYY-MM-DD"
                   />
                 </div>
               </div>
@@ -442,9 +641,16 @@ export function NewProjectDialog({ open, onOpenChange, onProjectCreated }: NewPr
                   </Label>
                   <Input
                     id="projectStartDate"
+                    name="projectStartDate"
                     type="date"
                     value={formData.projectStartDate}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, projectStartDate: e.target.value }))}
+                    onChange={(e) => handleDateChange("projectStartDate", e.target.value)}
+                    onKeyDown={handleDateKeyDown}
+                    onFocus={handleDateFocus}
+                    onInput={handleDateInput}
+                    pattern="\d{4}-\d{2}-\d{2}"
+                    maxLength={10}
+                    placeholder="YYYY-MM-DD"
                   />
                 </div>
                 <div>
@@ -453,9 +659,16 @@ export function NewProjectDialog({ open, onOpenChange, onProjectCreated }: NewPr
                   </Label>
                   <Input
                     id="projectEndDate"
+                    name="projectEndDate"
                     type="date"
                     value={formData.projectEndDate}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, projectEndDate: e.target.value }))}
+                    onChange={(e) => handleDateChange("projectEndDate", e.target.value)}
+                    onKeyDown={handleDateKeyDown}
+                    onFocus={handleDateFocus}
+                    onInput={handleDateInput}
+                    pattern="\d{4}-\d{2}-\d{2}"
+                    maxLength={10}
+                    placeholder="YYYY-MM-DD"
                   />
                 </div>
               </div>

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
 import { TaskCard } from "./task-card"
 import { AddTaskDialog } from "./add-task-dialog"
+import { TaskDetailDialog } from "./task-detail-dialog"
 import { apiFetch } from "@/lib/func"
 import { formatTimestamp } from "@/lib/utils"
 
@@ -26,6 +27,10 @@ export function ProgressStatus({ project }: ProgressStatusProps) {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [selectedStatus, setSelectedStatus] = useState<Task["status"]>("planned")
   const [loading, setLoading] = useState(true)
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null)
+  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false)
+  const [editingTask, setEditingTask] = useState<Task | null>(null)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
 
   // API에서 작업 목록 가져오기
   const fetchTasks = async () => {
@@ -171,6 +176,27 @@ export function ProgressStatus({ project }: ProgressStatusProps) {
     setIsAddDialogOpen(true)
   }
 
+  const handleTaskDoubleClick = (task: Task) => {
+    setSelectedTask(task)
+    setIsDetailDialogOpen(true)
+  }
+
+  const handleDetailDialogClose = () => {
+    setIsDetailDialogOpen(false)
+    setSelectedTask(null)
+  }
+
+  const handleEditTaskFromDetail = (task: Task) => {
+    setEditingTask(task)
+    setIsEditDialogOpen(true)
+    setIsDetailDialogOpen(false)
+  }
+
+  const handleEditDialogClose = () => {
+    setIsEditDialogOpen(false)
+    setEditingTask(null)
+  }
+
   if (loading) {
     return (
       <div className="space-y-8 bg-gray-50 min-h-screen p-6">
@@ -230,6 +256,7 @@ export function ProgressStatus({ project }: ProgressStatusProps) {
                 onDelete={handleDeleteTask}
                 onEdit={handleEditTask}
                 onStatusChange={handleStatusChange}
+                onDoubleClick={handleTaskDoubleClick}
               />
             ))}
           </div>
@@ -256,6 +283,7 @@ export function ProgressStatus({ project }: ProgressStatusProps) {
                 onDelete={handleDeleteTask}
                 onEdit={handleEditTask}
                 onStatusChange={handleStatusChange}
+                onDoubleClick={handleTaskDoubleClick}
               />
             ))}
           </div>
@@ -274,6 +302,7 @@ export function ProgressStatus({ project }: ProgressStatusProps) {
                 onDelete={handleDeleteTask}
                 onEdit={handleEditTask}
                 onStatusChange={handleStatusChange}
+                onDoubleClick={handleTaskDoubleClick}
               />
             ))}
           </div>
@@ -286,6 +315,31 @@ export function ProgressStatus({ project }: ProgressStatusProps) {
         onClose={() => setIsAddDialogOpen(false)}
         onAdd={handleAddTask}
         defaultStatus={selectedStatus}
+      />
+
+      {/* 작업 편집 다이얼로그 */}
+      <AddTaskDialog
+        isOpen={isEditDialogOpen}
+        onClose={handleEditDialogClose}
+        onAdd={() => {}} // 편집 모드에서는 사용되지 않음
+        onEdit={(updatedTask) => {
+          if (editingTask) {
+            handleEditTask(editingTask.id, updatedTask)
+            handleEditDialogClose()
+          }
+        }}
+        defaultStatus={editingTask?.status || "planned"}
+        editingTask={editingTask}
+      />
+
+      {/* 작업 상세 정보 다이얼로그 */}
+      <TaskDetailDialog
+        task={selectedTask}
+        isOpen={isDetailDialogOpen}
+        onClose={handleDetailDialogClose}
+        onEdit={handleEditTaskFromDetail}
+        onDelete={handleDeleteTask}
+        onStatusChange={handleStatusChange}
       />
     </div>
   )

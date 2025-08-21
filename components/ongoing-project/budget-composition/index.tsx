@@ -1715,7 +1715,7 @@ export function BudgetComposition({ project, consortiumData }: BudgetComposition
           <Card className="bg-blue-50 border-blue-200">
             <CardContent className="p-6 text-center">
               <div className="text-blue-600 text-sm mb-2">
-                정부 사업비 {isMultiYear && `(${availableYears.length}년)`}
+                정부지원예산 {isMultiYear && `(${availableYears.length}년)`}
               </div>
               <div className="text-blue-700 text-2xl font-bold">
                 {calculateGrandTotal().toLocaleString()}

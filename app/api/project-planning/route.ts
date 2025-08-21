@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 전체 데이터 조회 (페이지네이션 없음)
-    const projects = await prisma.projectPlanning.findMany({
+    const projects = await(prisma.projectPlanning.findMany({
       where,
       include: {
         consortiumOrgs: {
@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
         }
       },
       orderBy: { regDate: 'desc' }
-    });
+    }));
     
     // 주관기관 정보를 lead_organization로 변환하고 필드명을 snake_case로 변환
     const projectsWithLeadOrg = projects.map((project: any) => ({

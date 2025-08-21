@@ -31,7 +31,7 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
             </div>
             <div className="flex items-center gap-2">
               <User className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">담당자:</span>
+              <span className="text-sm text-muted-foreground">작성자:</span>
               <span className="text-sm font-medium">{project.manager}</span>
             </div>
             <div className="flex items-center gap-2">
@@ -43,7 +43,7 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
             </div>
             <div className="flex items-center gap-2">
               <DollarSign className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">총 예산:</span>
+              <span className="text-sm text-muted-foreground">정부지원예산:</span>
               <span className="text-sm font-medium">{(project.budget / 100000000).toFixed(1)}억원</span>
             </div>
           </div>

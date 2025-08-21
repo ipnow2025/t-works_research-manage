@@ -68,7 +68,7 @@ export function BudgetCalculatorDialog({ open, onOpenChange, onApplyTemplate, pr
   const [institution1Amount, setInstitution1Amount] = useState("600000") // 금액 방식용
   const [institution2Amount, setInstitution2Amount] = useState("400000") // 금액 방식용
   const [projectDuration, setProjectDuration] = useState(12) // 기본 12개월
-  const [yearlyDistribution, setYearlyDistribution] = useState("균등") // 배분 방식
+  const [yearlyDistribution, setYearlyDistribution] = useState("균등") // 분배 방식
   const [categoryRatios, setCategoryRatios] = useState<CategoryRatios>(DEFAULT_CATEGORY_RATIOS)
   const [yearlyCustomRatios, setYearlyCustomRatios] = useState<number[]>([]) // 사용자 정의 연차별 비율
   const [isSaving, setIsSaving] = useState(false) // 저장 중 상태
@@ -157,42 +157,35 @@ export function BudgetCalculatorDialog({ open, onOpenChange, onApplyTemplate, pr
       const yearlyAmount = Math.round(results.totalBudget / years)
       const remainder = results.totalBudget - (yearlyAmount * years) // 반올림으로 인한 차이 보정
       
-      return Array.from({ length: years }, (_, i) => {
-        const amount = i === years - 1 ? yearlyAmount + remainder : yearlyAmount
-        return {
-          year: i + 1,
-          amount,
-          government: Math.round((amount * Number.parseInt(governmentRatio)) / 100),
-          privateCash: Math.round((amount * Number.parseInt(privateCashRatio)) / 100),
-          privateInkind: Math.round((amount * Number.parseInt(privateInkindRatio)) / 100),
-        }
-      })
-    } else if (yearlyDistribution === "점진적") {
-      // 점진적 증가: 첫해 60%, 이후 연차별로 증가
-      const firstYearRatio = 0.6
-      const remainingRatio = 1 - firstYearRatio
-      const remainingYears = years - 1
+      // 각 항목별로 정확한 연차별 금액과 나머지 계산
+      const govRatio = Number.parseInt(governmentRatio) || 0
+      const cashRatio = Number.parseInt(privateCashRatio) || 0
+      const inkindRatio = Number.parseInt(privateInkindRatio) || 0
+      
+      const yearlyGovernment = Math.round((yearlyAmount * govRatio) / 100)
+      const yearlyPrivateCash = Math.round((yearlyAmount * cashRatio) / 100)
+      const yearlyPrivateInkind = Math.round((yearlyAmount * inkindRatio) / 100)
+      
+      // 각 항목별 나머지 계산
+      const totalGovernment = Math.round((results.totalBudget * govRatio) / 100)
+      const totalPrivateCash = Math.round((results.totalBudget * cashRatio) / 100)
+      const totalPrivateInkind = Math.round((results.totalBudget * inkindRatio) / 100)
+      
+      const govRemainder = totalGovernment - (yearlyGovernment * years)
+      const cashRemainder = totalPrivateCash - (yearlyPrivateCash * years)
+      const inkindRemainder = totalPrivateInkind - (yearlyPrivateInkind * years)
       
       return Array.from({ length: years }, (_, i) => {
-        let ratio: number
-        if (i === 0) {
-          ratio = firstYearRatio
-        } else {
-          // 나머지 연차에 균등하게 분배하되, 연차가 늘어날수록 약간씩 증가
-          const baseRatio = remainingRatio / remainingYears
-          const increaseFactor = 1 + (i * 0.1) // 연차별 10%씩 증가
-          ratio = baseRatio * increaseFactor
-        }
-        
-        const amount = Math.round(results.totalBudget * ratio)
+        const isLastYear = i === years - 1
         return {
           year: i + 1,
-          amount,
-          government: Math.round((amount * Number.parseInt(governmentRatio)) / 100),
-          privateCash: Math.round((amount * Number.parseInt(privateCashRatio)) / 100),
-          privateInkind: Math.round((amount * Number.parseInt(privateInkindRatio)) / 100),
+          amount: isLastYear ? yearlyAmount + remainder : yearlyAmount,
+          government: isLastYear ? yearlyGovernment + govRemainder : yearlyGovernment,
+          privateCash: isLastYear ? yearlyPrivateCash + cashRemainder : yearlyPrivateCash,
+          privateInkind: isLastYear ? yearlyPrivateInkind + inkindRemainder : yearlyPrivateInkind,
         }
       })
+
     } else if (yearlyDistribution === "사용자정의") {
       // 사용자 정의 분배: 각 연차별 비율을 직접 입력
       return Array.from({ length: years }, (_, i) => {
@@ -471,7 +464,7 @@ export function BudgetCalculatorDialog({ open, onOpenChange, onApplyTemplate, pr
                 <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
                 <h3 className="text-lg font-semibold text-gray-900">기본 설정</h3>
               </div>
-              <div className="grid grid-cols-4 gap-4">
+              <div className="grid grid-cols-4 gap-4 mb-6">
                 <div>
                   <Label htmlFor="project-duration" className="text-gray-700">
                     총 사업기간
@@ -494,7 +487,7 @@ export function BudgetCalculatorDialog({ open, onOpenChange, onApplyTemplate, pr
                 </div>
                 <div>
                   <Label htmlFor="total-budget" className="text-gray-700">
-                    정부 사업비 (천원)
+                    정부지원예산 (천원)
                   </Label>
                   <Input
                     id="total-budget"
@@ -521,7 +514,7 @@ export function BudgetCalculatorDialog({ open, onOpenChange, onApplyTemplate, pr
                 </div>
                 <div>
                   <Label htmlFor="yearly-distribution" className="text-gray-700">
-                    배분 방식
+                    분배 방식
                   </Label>
                   <Select value={yearlyDistribution} onValueChange={setYearlyDistribution}>
                     <SelectTrigger className="mt-1">
@@ -529,97 +522,95 @@ export function BudgetCalculatorDialog({ open, onOpenChange, onApplyTemplate, pr
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="균등">균등 분배</SelectItem>
-                      <SelectItem value="점진적">점진적 증가</SelectItem>
                       <SelectItem value="사용자정의">사용자 정의</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-
-          {/* 비율 조정 */}
-          <Card className="bg-white border-gray-200">
-            <CardContent className="p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">예산 비율 조정</h3>
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <Label className="text-gray-700">정부지원금 비율 (%)</Label>
-                  <Input
-                    value={governmentRatio}
-                    onChange={(e) => setGovernmentRatio(e.target.value)}
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label className="text-gray-700">민간현금 비율 (%)</Label>
-                  <Input
-                    value={privateCashRatio}
-                    onChange={(e) => setPrivateCashRatio(e.target.value)}
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label className="text-gray-700">민간현물 비율 (%)</Label>
-                  <Input
-                    value={privateInkindRatio}
-                    onChange={(e) => setPrivateInkindRatio(e.target.value)}
-                    className="mt-1"
-                  />
+              
+              <div className="border-t pt-6">
+                <h4 className="text-md font-semibold text-gray-800 mb-4">예산 비율 조정</h4>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <Label className="text-gray-700">정부지원금 비율 (%)</Label>
+                    <Input
+                      value={governmentRatio}
+                      onChange={(e) => setGovernmentRatio(e.target.value)}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-gray-700">민간현금 비율 (%)</Label>
+                    <Input
+                      value={privateCashRatio}
+                      onChange={(e) => setPrivateCashRatio(e.target.value)}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-gray-700">민간현물 비율 (%)</Label>
+                    <Input
+                      value={privateInkindRatio}
+                      onChange={(e) => setPrivateInkindRatio(e.target.value)}
+                      className="mt-1"
+                    />
+                  </div>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           {/* 계산 결과 */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">계산 결과</h3>
-              <Button variant="outline" size="sm" className="text-gray-600" onClick={handleRefresh}>
-                <RefreshCw className="w-4 h-4 mr-1" />
-                새로고침
-              </Button>
-            </div>
+          <Card className="bg-white border-gray-200">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-semibold text-gray-900">계산 결과</h3>
+                <Button variant="outline" size="sm" className="text-gray-600" onClick={handleRefresh}>
+                  <RefreshCw className="w-4 h-4 mr-1" />
+                  새로고침
+                </Button>
+              </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Card className="bg-blue-50 border-blue-200">
-                <CardContent className="p-4 text-center">
-                  <div className="text-blue-600 text-sm mb-1">정부 사업비</div>
-                  <div className="text-blue-700 text-lg font-bold">
-                    {results.totalBudget.toLocaleString()}
-                    {unit}
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="bg-green-50 border-green-200">
-                <CardContent className="p-4 text-center">
-                  <div className="text-green-600 text-sm mb-1">정부지원금</div>
-                  <div className="text-green-700 text-lg font-bold">
-                    {results.government.toLocaleString()}
-                    {unit}
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="bg-orange-50 border-orange-200">
-                <CardContent className="p-4 text-center">
-                  <div className="text-orange-600 text-sm mb-1">민간현금</div>
-                  <div className="text-orange-700 text-lg font-bold">
-                    {results.privateCash.toLocaleString()}
-                    {unit}
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="bg-purple-50 border-purple-200">
-                <CardContent className="p-4 text-center">
-                  <div className="text-purple-600 text-sm mb-1">민간현물</div>
-                  <div className="text-purple-700 text-lg font-bold">
-                    {results.privateInkind.toLocaleString()}
-                    {unit}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <Card className="bg-blue-50 border-blue-200">
+                  <CardContent className="p-4 text-center">
+                    <div className="text-blue-600 text-sm mb-1">정부지원예산</div>
+                    <div className="text-blue-700 text-lg font-bold">
+                      {results.totalBudget.toLocaleString()}
+                      {unit}
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="bg-green-50 border-green-200">
+                  <CardContent className="p-4 text-center">
+                    <div className="text-green-600 text-sm mb-1">정부지원금</div>
+                    <div className="text-green-700 text-lg font-bold">
+                      {results.government.toLocaleString()}
+                      {unit}
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="bg-orange-50 border-orange-200">
+                  <CardContent className="p-4 text-center">
+                    <div className="text-orange-600 text-sm mb-1">민간현금</div>
+                    <div className="text-orange-700 text-lg font-bold">
+                      {results.privateCash.toLocaleString()}
+                      {unit}
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="bg-purple-50 border-purple-200">
+                  <CardContent className="p-4 text-center">
+                    <div className="text-purple-600 text-sm mb-1">민간현물</div>
+                    <div className="text-purple-700 text-lg font-bold">
+                      {results.privateInkind.toLocaleString()}
+                      {unit}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* 연차별 예산 분배 */}
           <Card className="bg-white border-gray-200">
@@ -674,19 +665,16 @@ export function BudgetCalculatorDialog({ open, onOpenChange, onApplyTemplate, pr
                   <thead>
                     <tr className="border-b border-gray-200">
                       <th className="text-left py-2 text-gray-700">연차</th>
-                      <th className="text-left py-2 text-gray-700">총사업비</th>
-                      <th className="text-left py-2 text-gray-700">정부사업비</th>
-                      <th className="text-left py-2 text-gray-700">민간부담금 중 현금</th>
-                      <th className="text-left py-2 text-gray-700">민간부담금 중 현물</th>
+                      <th className="text-left py-2 text-gray-700">정부지원예산</th>
+                      <th className="text-left py-2 text-gray-700">민간 현금</th>
+                      <th className="text-left py-2 text-gray-700">민간 현물</th>
+                      <th className="text-left py-2 text-gray-700">총 연구개발비</th>
                     </tr>
                   </thead>
                   <tbody>
                     {yearlyBudgets.map((year) => (
                       <tr key={year.year} className="border-b border-gray-100">
                         <td className="py-2 text-gray-900">{year.year}년차</td>
-                        <td className="py-2 text-gray-900">
-                          {year.amount.toLocaleString()}{unit}
-                        </td>
                         <td className="py-2 text-gray-900">
                           {year.government.toLocaleString()}{unit}
                         </td>
@@ -696,8 +684,27 @@ export function BudgetCalculatorDialog({ open, onOpenChange, onApplyTemplate, pr
                         <td className="py-2 text-gray-900">
                           {year.privateInkind.toLocaleString()}{unit}
                         </td>
+                        <td className="py-2 text-gray-900">
+                          {year.amount.toLocaleString()}{unit}
+                        </td>
                       </tr>
                     ))}
+                    {/* 합계 행 */}
+                    <tr className="border-t-2 border-gray-300 bg-gray-50 font-semibold">
+                      <td className="py-3 text-gray-900">합계</td>
+                      <td className="py-3 text-gray-900">
+                        {yearlyBudgets.reduce((sum, year) => sum + year.government, 0).toLocaleString()}{unit}
+                      </td>
+                      <td className="py-3 text-gray-900">
+                        {yearlyBudgets.reduce((sum, year) => sum + year.privateCash, 0).toLocaleString()}{unit}
+                      </td>
+                      <td className="py-3 text-gray-900">
+                        {yearlyBudgets.reduce((sum, year) => sum + year.privateInkind, 0).toLocaleString()}{unit}
+                      </td>
+                      <td className="py-3 text-gray-900">
+                        {yearlyBudgets.reduce((sum, year) => sum + year.amount, 0).toLocaleString()}{unit}
+                      </td>
+                    </tr>
                   </tbody>
                 </table>
               </div>
@@ -735,10 +742,10 @@ export function BudgetCalculatorDialog({ open, onOpenChange, onApplyTemplate, pr
                     <tr className="border-b border-gray-200">
                       <th className="text-left py-2 text-gray-700">카테고리</th>
                       <th className="text-left py-2 text-gray-700">비율 (%)</th>
-                      <th className="text-left py-2 text-gray-700">총사업비</th>
-                      <th className="text-left py-2 text-gray-700">정부사업비</th>
-                      <th className="text-left py-2 text-gray-700">민간부담금 중 현금</th>
-                      <th className="text-left py-2 text-gray-700">민간부담금 중 현물</th>
+                      <th className="text-left py-2 text-gray-700">정부지원예산</th>
+                      <th className="text-left py-2 text-gray-700">민간 현금</th>
+                      <th className="text-left py-2 text-gray-700">민간 현물</th>
+                      <th className="text-left py-2 text-gray-700">총 연구개발비</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -757,9 +764,6 @@ export function BudgetCalculatorDialog({ open, onOpenChange, onApplyTemplate, pr
                           />
                         </td>
                         <td className="py-2 text-gray-900">
-                          {data.amount.toLocaleString()}{unit}
-                        </td>
-                        <td className="py-2 text-gray-900">
                           {data.government.toLocaleString()}{unit}
                         </td>
                         <td className="py-2 text-gray-900">
@@ -767,6 +771,9 @@ export function BudgetCalculatorDialog({ open, onOpenChange, onApplyTemplate, pr
                         </td>
                         <td className="py-2 text-gray-900">
                           {data.privateInkind.toLocaleString()}{unit}
+                        </td>
+                        <td className="py-2 text-gray-900">
+                          {data.amount.toLocaleString()}{unit}
                         </td>
                       </tr>
                     ))}
@@ -874,7 +881,7 @@ export function BudgetCalculatorDialog({ open, onOpenChange, onApplyTemplate, pr
                           {distributionMethod === "비율" ? "배분비율" : "배분금액"}
                         </th>
                         <th className="text-left py-2 text-gray-700">총사업비</th>
-                        <th className="text-left py-2 text-gray-700">정부사업비</th>
+                        <th className="text-left py-2 text-gray-700">정부지원예산</th>
                         <th className="text-left py-2 text-gray-700">민간부담금 중 현금</th>
                         <th className="text-left py-2 text-gray-700">민간부담금 중 현물</th>
                       </tr>

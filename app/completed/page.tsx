@@ -254,10 +254,10 @@ export default function CompletedPage() {
                     </div>
 
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm mb-4">
-                      <div>
+                      {/* <div>
                         <span className="text-muted-foreground">과제 ID:</span>
                         <div className="font-medium">{project.id}</div>
-                      </div>
+                      </div> */}
                       <div>
                         <span className="text-muted-foreground">주관기관:</span>
                         <div className="font-medium">{project.lead_organization || '미지정'}</div>

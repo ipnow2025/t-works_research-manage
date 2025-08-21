@@ -8,8 +8,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent } from "@/components/ui/tabs"
-import { FileText, Check, X, Plus, Minus, Building2 } from "lucide-react"
+import { FileText, Check, X, Plus, Minus, Building2, Calculator } from "lucide-react"
 import { BudgetCalculatorDialog } from "./budget-calculator-dialog"
+import { DetailedBudgetCalculatorDialog } from "./detailed-budget-calculator-dialog"
 import { apiFetch } from "@/lib/func"
 
 interface BudgetCompositionProps {
@@ -93,6 +94,7 @@ interface ApiBudgetItem {
 
 export function BudgetComposition({ project, consortiumData }: BudgetCompositionProps) {
   const [showCalculatorDialog, setShowCalculatorDialog] = useState(false)
+  const [showDetailedCalculatorDialog, setShowDetailedCalculatorDialog] = useState(false)
   const [budgetUnit, setBudgetUnit] = useState("천원")
   const [editingCell, setEditingCell] = useState<string | null>(null)
   const [editValue, setEditValue] = useState<any>(0)
@@ -153,32 +155,78 @@ export function BudgetComposition({ project, consortiumData }: BudgetComposition
   const [dataLoaded, setDataLoaded] = useState(false)
 
   // 예산 템플릿 적용 함수
-  const handleApplyBudgetTemplate = (budgetData: any) => {
+  const handleApplyBudgetTemplate = async (budgetData: any) => {
+    
+    // 계산된 예산 데이터를 상태에 저장
+    setCalculatedBudgetData(budgetData)
     
     // 계산된 예산 데이터를 기존 예산 형식으로 변환
     const convertedBudgets: Record<string, OrganizationBudget> = {}
     
-    organizations.forEach((org, orgIndex) => {
+    // 기관별 배분 비율 계산 (사용자가 입력한 값 사용)
+    const orgRatios: Record<string, number> = {}
+    let totalRatio = 0
+    
+    if (budgetData.institutionRatios && budgetData.institutionRatios.length > 0) {
+      // 기관명과 배분 비율 매핑
+      budgetData.institutionNames.forEach((orgName: string, index: number) => {
+        // 기관명에서 실제 기업명만 추출 (예: "임픽스 - 주관 (총괄)" -> "임픽스")
+        const actualOrgName = orgName.split(' - ')[0]
+        
+        // 기관명 매칭 (정확한 일치 또는 부분 일치)
+        const org = organizations.find(org => 
+          org.name === actualOrgName || 
+          org.name.includes(actualOrgName) || 
+          actualOrgName.includes(org.name)
+        )
+        
+        if (org) {
+          const ratio = Number(budgetData.institutionRatios[index]) || 0
+          orgRatios[org.id] = ratio / 100 // 퍼센트를 소수로 변환
+          totalRatio += ratio
+          console.log(`기관 매칭 성공: ${orgName} -> ${org.name} (${ratio}%)`)
+        } else {
+          console.log(`기관 매칭 실패: ${orgName}`)
+        }
+      })
+    }
+    
+    // 비율이 100%가 아닌 경우 균등 분배로 조정
+    if (totalRatio !== 100 && totalRatio > 0) {
+      const equalRatio = 100 / Object.keys(orgRatios).length
+      Object.keys(orgRatios).forEach(orgId => {
+        orgRatios[orgId] = equalRatio / 100
+      })
+    }
+    
+    organizations.forEach((org) => {
       convertedBudgets[org.id] = {}
       
       // 연차별 예산 설정
       budgetData.yearlyBudgets.forEach((yearBudget: any, yearIndex: number) => {
         const year = yearIndex + 1
         
-        // 기관별 배분 비율 계산
-        let orgRatio = 0.5 // 기본 50:50
-        if (budgetData.institutions) {
-          if (orgIndex === 0) {
-            // 주관기관
-            orgRatio = budgetData.institutions.institution1.total / budgetData.results.totalBudget
-          } else {
-            // 참여기관
-            orgRatio = budgetData.institutions.institution2.total / budgetData.results.totalBudget
-          }
+        // 기관별 배분 비율 (기본값: 균등 분배)
+        const orgRatio = orgRatios[org.id] || (1 / organizations.length)
+        
+        // 사용자 정의 연차별 예산이 있는 경우 해당 값 사용
+        let yearBudgetAmount = yearBudget.amount
+        if (budgetData.yearlyDistribution === "사용자정의" && 
+            budgetData.yearlyCustomAmounts && 
+            budgetData.yearlyCustomAmounts[yearIndex] > 0) {
+          // 사용자가 입력한 정부지원예산을 기준으로 총 예산 계산
+          // 정부지원예산 비율 = 정부지원예산 / 총 예산
+          const governmentRatio = budgetData.results.government / budgetData.results.totalRD
+          // 사용자가 입력한 정부지원예산을 해당 비율로 나누어 총 예산 계산
+          yearBudgetAmount = Math.round(budgetData.yearlyCustomAmounts[yearIndex] / governmentRatio)
+          
+          console.log(`연차 ${year}: 사용자 입력 정부지원예산=${budgetData.yearlyCustomAmounts[yearIndex]}, 계산된 총 예산=${yearBudgetAmount}`)
         }
         
-        // 기관별 연차 예산 계산
-        const orgYearBudget = Math.round(yearBudget.amount * orgRatio)
+        // 기관별 연차 예산 계산 (연차별 총 연구개발비 기준)
+        const orgYearBudget = Math.round(yearBudgetAmount * orgRatio)
+        
+        console.log(`연차 ${year} - ${org.name}: 총 예산=${yearBudgetAmount}, 기관 비율=${(orgRatio * 100).toFixed(1)}%, 기관 예산=${orgYearBudget}`)
         
         // 카테고리별 예산 분배
         const cashBudget: BudgetCategory = {
@@ -207,10 +255,13 @@ export function BudgetComposition({ project, consortiumData }: BudgetComposition
           indirectCosts: 0,
         }
         
-        // 카테고리별 예산 분배 (현금 80%, 현물 20% 가정)
-        if (budgetData.categoryBudgets) {
+        // 카테고리별 예산 분배 (사용자가 입력한 카테고리 비율 사용)
+        if (budgetData.categoryBudgets && budgetData.categoryRatios) {
           Object.entries(budgetData.categoryBudgets).forEach(([category, catData]: [string, any]) => {
-            const categoryAmount = Math.round(catData.amount * orgRatio)
+            const categoryRatio = budgetData.categoryRatios[category] || 0
+            const categoryAmount = Math.round(orgYearBudget * (categoryRatio / 100))
+            
+            // 현금과 현물 비율 (기본 80:20, 필요시 조정 가능)
             const cashAmount = Math.round(categoryAmount * 0.8)
             const inkindAmount = categoryAmount - cashAmount
             
@@ -228,16 +279,86 @@ export function BudgetComposition({ project, consortiumData }: BudgetComposition
       })
     })
     
+    // 전체 예산 검증: 각 기관별 예산의 합이 연차별 총 예산과 일치하는지 확인
+    budgetData.yearlyBudgets.forEach((yearBudget: any, yearIndex: number) => {
+      const year = yearIndex + 1
+      const totalYearBudget = yearBudget.amount
+      let calculatedTotal = 0
+      
+      Object.values(convertedBudgets).forEach(orgBudget => {
+        if (orgBudget[year]) {
+          const orgTotal = Object.values(orgBudget[year].cash).reduce((sum, amount) => sum + amount, 0) +
+                          Object.values(orgBudget[year].inkind).reduce((sum, amount) => sum + amount, 0)
+          calculatedTotal += orgTotal
+        }
+      })
+      
+      console.log(`연차 ${year} 검증: 총 예산=${totalYearBudget}, 계산된 합계=${calculatedTotal}, 차이=${totalYearBudget - calculatedTotal}`)
+    })
+    
     // 변환된 예산으로 상태 업데이트
     setOrganizationBudgets(convertedBudgets)
     
-    // 연차 정보 업데이트
-    const years = budgetData.yearlyBudgets.map((_: any, index: number) => index + 1)
-    // setAvailableYears(years) // 이 부분은 useMemo에서 처리되므로 제거
-    // setIsMultiYear(years.length > 1) // 이 부분은 useMemo에서 처리되므로 제거
-    
-    // 성공 메시지 표시
-    alert('예산 템플릿이 성공적으로 적용되었습니다!')
+    // 계산된 예산을 자동으로 저장
+    try {
+      setSaving(true)
+      
+      // 예산 데이터를 API 형식으로 변환
+      const budgetDataForApi: Record<string, Record<string, { cash: Record<string, number>, inkind: Record<string, number> }>> = {}
+      
+      // 연차별로 데이터 구성
+      Object.keys(convertedBudgets).forEach(year => {
+        budgetDataForApi[year] = {}
+        
+        organizations.forEach(org => {
+          const orgBudget = convertedBudgets[org.id]?.[Number(year)]
+          if (orgBudget) {
+            budgetDataForApi[year][org.id] = {
+              cash: orgBudget.cash,
+              inkind: orgBudget.inkind
+            }
+          }
+        })
+      })
+
+      const response = await apiFetch('/api/budget-details', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          projectIdx: project?.id,
+          budgetData: budgetDataForApi,
+          companyIdx: project?.companyIdx || 'default',
+          memberIdx: project?.memberIdx || 'default'
+        })
+      })
+
+      const result = await response.json()
+      
+      if (result.success) {
+        alert('계산된 예산이 성공적으로 적용되고 저장되었습니다!')
+        setHasSavedData(true)
+        
+        // 저장 후 예산 상세내역 데이터 다시 로드
+        if (project?.id) {
+          const detailsRes = await apiFetch(`/api/budget-details?projectIdx=${project.id}`)
+          if (detailsRes.ok) {
+            const detailsData = await detailsRes.json()
+            if (detailsData.success && detailsData.data.length > 0) {
+              convertSavedBudgetDataToFormat(detailsData.data)
+            }
+          }
+        }
+      } else {
+        throw new Error(result.error || '저장에 실패했습니다.')
+      }
+    } catch (error) {
+      console.error('계산된 예산 저장 오류:', error)
+      alert(`계산된 예산 저장 중 오류가 발생했습니다: ${error}`)
+    } finally {
+      setSaving(false)
+    }
   }
 
   // 컨소시엄 데이터에서 기관 정보 가져오기
@@ -1049,6 +1170,9 @@ export function BudgetComposition({ project, consortiumData }: BudgetComposition
   const directCategories = getDirectCostCategories()
   const indirectCategories = getIndirectCostCategories()
 
+  // 계산된 예산 데이터 상태 추가
+  const [calculatedBudgetData, setCalculatedBudgetData] = useState<any>(null)
+
   // 예산 테이블 렌더링 함수
   const renderBudgetTable = (orgId?: string) => {
     const isTotal = !orgId
@@ -1606,75 +1730,170 @@ export function BudgetComposition({ project, consortiumData }: BudgetComposition
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold text-gray-900">예산 구성</h2>
-            <p className="text-sm text-gray-500">프로젝트 예산의 현금과 현물 구성 현황</p>
+            <p className="text-sm text-gray-500">
+              프로젝트 예산의 현금과 현물 구성 현황
+              <span className="text-xs text-gray-400 ml-2">(실제 계산금액은 컨소시엄의 규모와 종류에 따라 다를수 있습니다)</span>
+            </p>
+            {calculatedBudgetData && (
+              <div className="flex items-center gap-2 mt-2">
+                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                <span className="text-sm text-blue-600 font-medium">계산된 예산이 적용됨</span>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => {
+                    setCalculatedBudgetData(null)
+                    alert('계산된 예산이 초기화되었습니다.')
+                  }}
+                  className="text-xs h-6 px-2"
+                >
+                  초기화
+                </Button>
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-4">
-            {/* <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600">단위:</span>
-              <Select value={budgetUnit} onValueChange={setBudgetUnit}>
-                <SelectTrigger className="w-20 h-8">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="원">원</SelectItem>
-                  <SelectItem value="천원">천원</SelectItem>
-                  <SelectItem value="백만원">백만원</SelectItem>
-                </SelectContent>
-              </Select>
-            </div> */}
             <Button className="bg-gray-900 hover:bg-gray-800 text-white" onClick={() => setShowCalculatorDialog(true)}>
-              <FileText className="w-4 h-4 mr-2" />
-              사업비 계산기
+              <Calculator className="w-4 h-4 mr-2" />
+              기본 사업비 계산기
             </Button>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="bg-blue-50 border-blue-200">
-            <CardContent className="p-6 text-center">
+          <Card className={`${calculatedBudgetData ? 'bg-green-100 border-green-300 shadow-md' : 'bg-green-50 border-green-200'}`}>
+            <CardContent className="p-6 text-center relative">
+              {calculatedBudgetData && (
+                <div className="absolute top-2 right-2">
+                  <span className="px-2 py-1 bg-green-600 text-white text-xs rounded-full font-medium">계산됨</span>
+                </div>
+              )}
+              <div className="text-green-600 text-sm mb-2">정부지원예산</div>
+              <div className="text-green-700 text-2xl font-bold">
+                {calculatedBudgetData ? 
+                  (() => {
+                    // 사용자 정의 연차별 예산이 있는 경우 해당 값들의 합계 표시
+                    if (calculatedBudgetData.yearlyDistribution === "사용자정의" && 
+                        calculatedBudgetData.yearlyCustomAmounts && 
+                        calculatedBudgetData.yearlyCustomAmounts.length > 0) {
+                      const totalCustomAmount = calculatedBudgetData.yearlyCustomAmounts.reduce((sum: number, amount: number) => sum + amount, 0)
+                      return `${totalCustomAmount.toLocaleString()}천원`
+                    }
+                    // 기본값
+                    return calculatedBudgetData.results?.government ? 
+                      `${calculatedBudgetData.results.government.toLocaleString()}천원` : 
+                      '0천원'
+                  })() :
+                  `${project?.total_cost ? project.total_cost.toLocaleString() : "0"}천원`
+                }
+              </div>
+            </CardContent>
+          </Card>
+          <Card className={`${calculatedBudgetData ? 'bg-orange-100 border-orange-300 shadow-md' : 'bg-orange-50 border-orange-200'}`}>
+            <CardContent className="p-6 text-center relative">
+              {calculatedBudgetData && (
+                <div className="absolute top-2 right-2">
+                  <span className="px-2 py-1 bg-orange-600 text-white text-xs rounded-full font-medium">계산됨</span>
+                </div>
+              )}
+              <div className="text-orange-600 text-sm mb-2">민간 현금</div>
+              <div className="text-orange-700 text-2xl font-bold">
+                {calculatedBudgetData ? 
+                  (() => {
+                    // 사용자 정의 연차별 예산이 있는 경우 해당 값들을 기반으로 민간 현금 계산
+                    if (calculatedBudgetData.yearlyDistribution === "사용자정의" && 
+                        calculatedBudgetData.yearlyCustomAmounts && 
+                        calculatedBudgetData.yearlyCustomAmounts.length > 0) {
+                      const totalCustomAmount = calculatedBudgetData.yearlyCustomAmounts.reduce((sum: number, amount: number) => sum + amount, 0)
+                      // 정부지원예산 비율로 총 예산 계산 후 민간 현금 비율 적용
+                      const governmentRatio = calculatedBudgetData.results?.government && calculatedBudgetData.results?.totalRD ? 
+                        calculatedBudgetData.results.government / calculatedBudgetData.results.totalRD : 0
+                      const totalBudget = Math.round(totalCustomAmount / governmentRatio)
+                      const privateCashRatio = calculatedBudgetData.results?.privateCash && calculatedBudgetData.results?.totalRD ? 
+                        calculatedBudgetData.results.privateCash / calculatedBudgetData.results.totalRD : 0
+                      const privateCash = Math.round(totalBudget * privateCashRatio)
+                      return `${privateCash.toLocaleString()}천원`
+                    }
+                    // 기본값
+                    return calculatedBudgetData.results?.privateCash ? 
+                      `${calculatedBudgetData.results.privateCash.toLocaleString()}천원` : 
+                      '0천원'
+                  })() :
+                  `${availableYears
+                    .reduce((total, year) => total + calculateTotalTypeYearTotal("cash", year), 0)
+                    .toLocaleString()}천원`
+                }
+              </div>
+            </CardContent>
+          </Card>
+          <Card className={`${calculatedBudgetData ? 'bg-purple-100 border-purple-300 shadow-md' : 'bg-purple-50 border-purple-200'}`}>
+            <CardContent className="p-6 text-center relative">
+              {calculatedBudgetData && (
+                <div className="absolute top-2 right-2">
+                  <span className="px-2 py-1 bg-purple-600 text-white text-xs rounded-full font-medium">계산됨</span>
+                </div>
+              )}
+              <div className="text-purple-600 text-sm mb-2">민간 현물</div>
+              <div className="text-purple-700 text-2xl font-bold">
+                {calculatedBudgetData ? 
+                  (() => {
+                    // 사용자 정의 연차별 예산이 있는 경우 해당 값들을 기반으로 민간 현물 계산
+                    if (calculatedBudgetData.yearlyDistribution === "사용자정의" && 
+                        calculatedBudgetData.yearlyCustomAmounts && 
+                        calculatedBudgetData.yearlyCustomAmounts.length > 0) {
+                      const totalCustomAmount = calculatedBudgetData.yearlyCustomAmounts.reduce((sum: number, amount: number) => sum + amount, 0)
+                      // 정부지원예산 비율로 총 예산 계산 후 민간 현물 비율 적용
+                      const governmentRatio = calculatedBudgetData.results?.government && calculatedBudgetData.results?.totalRD ? 
+                        calculatedBudgetData.results.government / calculatedBudgetData.results.totalRD : 0
+                      const totalBudget = Math.round(totalCustomAmount / governmentRatio)
+                      const privateInkindRatio = calculatedBudgetData.results?.privateInkind && calculatedBudgetData.results?.totalRD ? 
+                        calculatedBudgetData.results.privateInkind / calculatedBudgetData.results.totalRD : 0
+                      const privateInkind = Math.round(totalBudget * privateInkindRatio)
+                      return `${privateInkind.toLocaleString()}천원`
+                    }
+                    // 기본값
+                    return calculatedBudgetData.results?.privateInkind ? 
+                      `${calculatedBudgetData.results.privateInkind.toLocaleString()}천원` : 
+                      '0천원'
+                  })() :
+                  `${availableYears
+                    .reduce((total, year) => total + calculateTotalTypeYearTotal("inkind", year), 0)
+                    .toLocaleString()}천원`
+                }
+              </div>
+            </CardContent>
+          </Card>
+          <Card className={`${calculatedBudgetData ? 'bg-blue-100 border-blue-300 shadow-md' : 'bg-blue-50 border-blue-200'}`}>
+            <CardContent className="p-6 text-center relative">
+              {calculatedBudgetData && (
+                <div className="absolute top-2 right-2">
+                  <span className="px-2 py-1 bg-blue-600 text-white text-xs rounded-full font-medium">계산됨</span>
+                </div>
+              )}
               <div className="text-blue-600 text-sm mb-2">
-                정부 사업비 {isMultiYear && `(${availableYears.length}년)`}
+                총 연구개발비 {isMultiYear && `(${availableYears.length}년)`}
               </div>
               <div className="text-blue-700 text-2xl font-bold">
-                {calculateGrandTotal().toLocaleString()}
-                {budgetUnit}
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-green-50 border-green-200">
-            <CardContent className="p-6 text-center">
-              <div className="text-green-600 text-sm mb-2">정부 지원금</div>
-              <div className="text-green-700 text-2xl font-bold">
-                {availableYears
-                  .reduce((total, year) => total + calculateTotalTypeYearTotal("cash", year), 0)
-                  .toLocaleString()}
-                {budgetUnit}
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-orange-50 border-orange-200">
-            <CardContent className="p-6 text-center">
-              <div className="text-orange-600 text-sm mb-2">민간 부담금</div>
-              <div className="text-orange-700 text-2xl font-bold">
-                {availableYears
-                  .reduce((total, year) => total + calculateTotalTypeYearTotal("inkind", year), 0)
-                  .toLocaleString()}
-                {budgetUnit}
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-purple-50 border-purple-200">
-            <CardContent className="p-6 text-center">
-              <div className="text-purple-600 text-sm mb-2">현물 비율</div>
-              <div className="text-purple-700 text-2xl font-bold">
-                {calculateGrandTotal() > 0
-                  ? Math.round(
-                      (availableYears.reduce((total, year) => total + calculateTotalTypeYearTotal("inkind", year), 0) /
-                        calculateGrandTotal()) *
-                        100,
-                    )
-                  : 0}
-                %
+                {calculatedBudgetData ? 
+                  (() => {
+                    // 사용자 정의 연차별 예산이 있는 경우 해당 값들을 기반으로 총 예산 계산
+                    if (calculatedBudgetData.yearlyDistribution === "사용자정의" && 
+                        calculatedBudgetData.yearlyCustomAmounts && 
+                        calculatedBudgetData.yearlyCustomAmounts.length > 0) {
+                      const totalCustomAmount = calculatedBudgetData.yearlyCustomAmounts.reduce((sum: number, amount: number) => sum + amount, 0)
+                      // 정부지원예산 비율로 총 예산 계산
+                      const governmentRatio = calculatedBudgetData.results?.government && calculatedBudgetData.results?.totalRD ? 
+                        calculatedBudgetData.results.government / calculatedBudgetData.results.totalRD : 0
+                      const totalBudget = Math.round(totalCustomAmount / governmentRatio)
+                      return `${totalBudget.toLocaleString()}천원`
+                    }
+                    // 기본값
+                    return calculatedBudgetData.results?.totalRD ? 
+                      `${calculatedBudgetData.results.totalRD.toLocaleString()}천원` : 
+                      '0천원'
+                  })() :
+                  `${calculateGrandTotal().toLocaleString()}천원`
+                }
               </div>
             </CardContent>
           </Card>
@@ -1689,23 +1908,32 @@ export function BudgetComposition({ project, consortiumData }: BudgetComposition
               <CardTitle className="text-xl font-bold text-gray-900">예산 상세내역</CardTitle>
               <p className="text-sm text-gray-500">기관별 현금과 현물로 구분된 예산 관리</p>
             </div>
-            <Button
-              onClick={handleSaveBudgetDetails}
-              disabled={saving}
-              className="bg-green-600 hover:bg-green-700 text-white"
-            >
-              {saving ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  저장 중...
-                </>
-              ) : (
-                <>
-                  <FileText className="w-4 h-4 mr-2" />
-                  예산 저장
-                </>
-              )}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={handleSaveBudgetDetails}
+                disabled={saving}
+                className="bg-green-600 hover:bg-green-700 text-white"
+              >
+                {saving ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    저장 중...
+                  </>
+                ) : (
+                  <>
+                    <FileText className="w-4 h-4 mr-2" />
+                    예산 저장
+                  </>
+                )}
+              </Button>
+              <Button
+                onClick={() => setShowDetailedCalculatorDialog(true)}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                <Calculator className="w-4 h-4 mr-2" />
+                상세 사업비 계산기
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="p-6">
@@ -1931,6 +2159,20 @@ export function BudgetComposition({ project, consortiumData }: BudgetComposition
         onOpenChange={setShowCalculatorDialog}
         onApplyTemplate={handleApplyBudgetTemplate}
         project={project}
+        consortiumData={consortiumData}
+      />
+
+      <DetailedBudgetCalculatorDialog
+        open={showDetailedCalculatorDialog}
+        onOpenChange={setShowDetailedCalculatorDialog}
+        onApplyTemplate={handleApplyBudgetTemplate}
+        project={project}
+        consortiumData={consortiumData}
+        basicCalculatorRatios={calculatedBudgetData ? {
+          governmentRatio: calculatedBudgetData.governmentRatio || 70,
+          privateCashRatio: calculatedBudgetData.privateCashRatio || 15,
+          privateInkindRatio: calculatedBudgetData.privateInkindRatio || 15
+        } : undefined}
       />
     </div>
   )

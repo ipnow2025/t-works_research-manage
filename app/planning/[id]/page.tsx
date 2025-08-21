@@ -33,6 +33,7 @@ interface ProjectDetail {
   application_date?: number;
   member_name: string;
   company_name: string;
+  lead_organization?: string;
   reg_date: number;
   mdy_date: number;
   policy_goals: Array<{
@@ -112,6 +113,12 @@ export default function PlanningDetailPage({ params }: { params: Promise<{ id: s
     }).format(amount * 1000) // 천원 단위로 저장되어 있으므로 1000을 곱함
   }
 
+  const formatDateString = (dateString: string) => {
+    if (!dateString) return '미지정'
+    const date = new Date(dateString)
+    return date.toLocaleDateString('ko-KR')
+  }
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "DRAFT":
@@ -160,6 +167,12 @@ export default function PlanningDetailPage({ params }: { params: Promise<{ id: s
       type: string
       members: Array<any>
     }>
+    yearlyOrganizations?: { [key: number]: Array<{
+      id: string
+      name: string
+      type: string
+      members: Array<any>
+    }> }
   }) => {
     setConsortiumData(data)
   }
@@ -226,7 +239,7 @@ export default function PlanningDetailPage({ params }: { params: Promise<{ id: s
               onClick={() => router.push("/planning")}
               className="text-muted-foreground hover:text-foreground flex items-center gap-1 mb-2"
             >
-              <ChevronLeft className="h-4 w-4" />
+              <ChevronLeft className="w-4 h-4" />
               기획/신청 목록으로 돌아가기
             </button>
             <div className="flex flex-wrap items-center gap-2 mb-2">
@@ -240,6 +253,64 @@ export default function PlanningDetailPage({ params }: { params: Promise<{ id: s
             <p className="text-sm text-muted-foreground">프로젝트 ID: {project.id}</p>
           </div>
 
+          {/* 프로젝트 요약 정보 카드 */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+            <h3 className="text-lg font-medium mb-4 text-gray-900 dark:text-gray-100">프로젝트 요약</h3>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm mb-4">
+              {/* 1줄: 3개 항목 (4칸 중 3칸만 사용) */}
+              <div>
+                <span className="text-muted-foreground">주관기관:</span>
+                <div className={`font-medium ${!project.lead_organization ? 'text-orange-600 dark:text-orange-400' : ''}`}>
+                  {project.lead_organization || '설정 필요'}
+                </div>
+              </div>
+              <div>
+                <span className="text-muted-foreground">연구책임자:</span>
+                <div className="font-medium">{project.project_manager}</div>
+              </div>
+              <div>
+                <span className="text-muted-foreground">작성자:</span>
+                <div className={`font-medium ${!project.member_name ? 'text-orange-600 dark:text-orange-400' : ''}`}>
+                  {project.member_name || '설정 필요'}
+                </div>
+              </div>
+              <div className="hidden lg:block"></div> {/* 빈 칸으로 간격 맞춤 */}
+            </div>
+            
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm mb-4">
+              {/* 2줄: 4개 항목 */}
+              <div>
+                <span className="text-muted-foreground">기간:</span>
+                <div className="font-medium">
+                  {formatDateString(project.start_date)} ~ {formatDateString(project.end_date)}
+                </div>
+              </div>
+              <div>
+                <span className="text-muted-foreground">정부지원예산:</span>
+                <div className="font-medium">{formatBudget(project.total_cost)}</div>
+              </div>
+              <div>
+                <span className="text-muted-foreground">주관부처:</span>
+                <div className={`font-medium ${!project.department ? 'text-orange-600 dark:text-orange-400' : ''}`}>
+                  {project.department || '설정 필요'}
+                </div>
+              </div>
+              <div>
+                <span className="text-muted-foreground">전문기관:</span>
+                <div className={`font-medium ${!project.institution ? 'text-orange-600 dark:text-orange-400' : ''}`}>
+                  {project.institution || '설정 필요'}
+                </div>
+              </div>
+            </div>
+
+            {project.project_purpose && (
+              <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-2 text-left">사업목적</h4>
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{project.project_purpose}</p>
+              </div>
+            )}
+          </div>
+
           {/* 탭 네비게이션 */}
           <div className="border-b border-border">
             <div className="flex space-x-6 overflow-x-auto">
@@ -251,7 +322,7 @@ export default function PlanningDetailPage({ params }: { params: Promise<{ id: s
                     : "border-transparent text-muted-foreground hover:text-foreground"
                 }`}
               >
-                사업개요
+                공고관리
               </button>
               <button
                 onClick={() => setActiveTab("progress")}

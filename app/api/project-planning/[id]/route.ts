@@ -8,28 +8,50 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const resolvedParams = await params;
-    const projectId = parseInt(resolvedParams.id);
+    const { id } = await params;
+    const projectId = parseInt(id);
+
+    const memberInfo = getMemberInfoFromRequest(request);
+    
+    if (!memberInfo?.memberIdx) {
+      return NextResponse.json(
+        { success: false, error: '로그인이 필요합니다.' },
+        { status: 401 }
+      );
+    }
 
     if (isNaN(projectId)) {
       return NextResponse.json(
-        { success: false, message: "유효하지 않은 프로젝트 ID입니다." },
+        { success: false, error: '유효하지 않은 프로젝트 ID입니다.' },
         { status: 400 }
       );
     }
 
-    const project = await prisma.projectPlanning.findUnique({
-      where: { id: projectId },
+    // consortiumOrgs 관계를 포함하여 조회
+    const project = await prisma.projectPlanning.findFirst({
+      where: { 
+        id: projectId,
+        companyIdx: memberInfo.companyIdx,
+        isFlag: 1
+      },
+      include: {
+        consortiumOrgs: {
+          where: { 
+            organizationType: '주관기관',
+            isFlag: 1 
+          }
+        }
+      }
     });
 
     if (!project) {
       return NextResponse.json(
-        { success: false, message: "프로젝트를 찾을 수 없습니다." },
+        { success: false, error: '프로젝트를 찾을 수 없습니다.' },
         { status: 404 }
       );
     }
 
-    // Prisma의 camelCase를 snake_case로 변환
+    // Prisma의 camelCase를 snake_case로 변환하고 lead_organization 추가
     const projectData = {
       id: project.id,
       project_name: project.projectName,
@@ -52,6 +74,8 @@ export async function GET(
       is_flag: project.isFlag,
       reg_date: project.regDate,
       mdy_date: project.mdyDate,
+      // 주관기관 정보 추가
+      lead_organization: project.consortiumOrgs[0]?.organizationName || null,
       // 상태정보 필드들 추가
       performance_summary: project.performanceSummary,
       follow_up_actions: project.followUpActions,

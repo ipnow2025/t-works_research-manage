@@ -25,8 +25,19 @@ export function ProjectCard({
   getParticipationTypeColor,
   getGradeColor,
 }: ProjectCardProps) {
+  const handleCardDoubleClick = (e: React.MouseEvent) => {
+    // 버튼 영역을 더블클릭한 경우 상세보기 실행하지 않음
+    if ((e.target as HTMLElement).closest('button')) {
+      return
+    }
+    onDetailView?.(project)
+  }
+
   return (
-    <div className="border border-gray-200 rounded-lg p-4 hover:border-primary transition-colors">
+    <div 
+      className="border border-gray-200 rounded-lg p-4 hover:border-primary transition-colors cursor-pointer"
+      onDoubleClick={handleCardDoubleClick}
+    >
       {/* 제목 및 상태 */}
       <div className="flex items-center gap-2 mb-3">
         <h3 className="text-lg font-medium text-gray-900">{project.title}</h3>
@@ -73,7 +84,7 @@ export function ProjectCard({
         </div>
         <div className="flex items-center gap-2">
           <span className="text-gray-600">
-            {project.score ? "성과점수" : project.rejectionReason ? "미선정사유" : "총 예산"}:
+            {project.score ? "성과점수" : project.rejectionReason ? "미선정사유" : "정부지원예산"}:
           </span>
           <div
             className={`font-medium ${project.score ? "text-green-600" : project.rejectionReason ? "text-red-600" : "text-gray-900"}`}
@@ -121,7 +132,7 @@ export function ProjectCard({
 
       {/* 액션 버튼 */}
       {showActions && (
-        <div className="flex gap-2">
+        <div className="flex gap-2" onDoubleClick={(e) => e.stopPropagation()}>
           <Button variant="outline" size="sm" onClick={() => onDetailView?.(project)}>
             <Eye className="w-4 h-4 mr-1" />
             상세보기

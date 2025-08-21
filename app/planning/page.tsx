@@ -144,8 +144,10 @@ export default function PlanningPage() {
   }
 
   // 상세 페이지로 이동
-  const handleViewProject = (project: ProjectPlanning, e: React.MouseEvent) => {
-    e.stopPropagation() // 부모 요소의 클릭 이벤트 방지
+  const handleViewProject = (project: ProjectPlanning, e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation() // 부모 요소의 클릭 이벤트 방지
+    }
     router.push(`/planning/${project.id}`)
   }
 
@@ -363,7 +365,8 @@ export default function PlanningPage() {
                 filteredProjects.map((project) => (
                   <div
                     key={project.id}
-                    className="border border-gray-200 dark:border-gray-700 rounded-lg p-6 hover:border-blue-300 transition-colors"
+                    className="border border-gray-200 dark:border-gray-700 rounded-lg p-6 hover:border-blue-300 transition-colors cursor-pointer"
+                    onDoubleClick={() => handleViewProject(project)}
                   >
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-2">
@@ -374,7 +377,7 @@ export default function PlanningPage() {
                           </span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2" onDoubleClick={(e) => e.stopPropagation()}>
                         <Button
                           variant="outline"
                           size="sm"
@@ -399,17 +402,14 @@ export default function PlanningPage() {
                           onClick={(e) => openDeleteDialog(project, e)}
                           className="flex items-center gap-1 text-red-600 hover:text-red-700 hover:bg-red-50"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="h-4 w-4" />
                           삭제
                         </Button>
                       </div>
                     </div>
 
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm mb-4">
-                      <div>
-                        <span className="text-muted-foreground">과제 ID:</span>
-                        <div className="font-medium">{project.id}</div>
-                      </div>
+                      {/* 1줄: 3개 항목 (4칸 중 3칸만 사용) */}
                       <div>
                         <span className="text-muted-foreground">주관기관:</span>
                         <div className="font-medium">{project.lead_organization || '미지정'}</div>
@@ -419,9 +419,14 @@ export default function PlanningPage() {
                         <div className="font-medium">{project.project_manager}</div>
                       </div>
                       <div>
-                        <span className="text-muted-foreground">담당자:</span>
+                        <span className="text-muted-foreground">작성자:</span>
                         <div className="font-medium">{project.member_name || '미지정'}</div>
                       </div>
+                      <div className="hidden lg:block"></div> {/* 빈 칸으로 간격 맞춤 */}
+                    </div>
+                    
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm mb-4">
+                      {/* 2줄: 4개 항목 */}
                       <div>
                         <span className="text-muted-foreground">기간:</span>
                         <div className="font-medium">
@@ -429,7 +434,7 @@ export default function PlanningPage() {
                         </div>
                       </div>
                       <div>
-                        <span className="text-muted-foreground">예산:</span>
+                        <span className="text-muted-foreground">정부지원예산:</span>
                         <div className="font-medium">{formatBudget(project.total_cost)}</div>
                       </div>
                       <div>
@@ -443,7 +448,8 @@ export default function PlanningPage() {
                     </div>
 
                     <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-                      <p className="text-sm text-muted-foreground">{project.project_details}</p>
+                      <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-2 text-left">사업목적</h4>
+                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">{project.project_purpose}</p>
                     </div>
                   </div>
                 ))

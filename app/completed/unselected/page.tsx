@@ -268,7 +268,11 @@ export default function UnselectedProjectsPage() {
 
   // 프로젝트 카드 렌더링 함수
   const renderProjectCard = (project: any, showActions = true) => (
-    <div key={project.id} className="border border-gray-200 rounded-lg p-4 hover:border-primary transition-colors">
+    <div 
+      key={project.id} 
+      className="border border-gray-200 rounded-lg p-4 hover:border-primary transition-colors cursor-pointer"
+      onDoubleClick={() => handleDetailView(project)}
+    >
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1">
           <h4 className="font-medium mb-2">{project.title}</h4>
@@ -298,7 +302,7 @@ export default function UnselectedProjectsPage() {
           <div className="font-medium">{project.rejectionDate}</div>
         </div>
         <div>
-          <span className="text-muted-foreground">신청예산:</span>
+          <span className="text-muted-foreground">정부지원예산:</span>
           <div className="font-medium text-red-600">{formatBudget(project.budget)}</div>
         </div>
         <div>
@@ -316,7 +320,7 @@ export default function UnselectedProjectsPage() {
       )}
 
       {showActions && (
-        <div className="flex gap-2">
+        <div className="flex gap-2" onDoubleClick={(e) => e.stopPropagation()}>
           <Button variant="outline" size="sm" onClick={() => handleDetailView(project)}>
             <Eye className="w-3 h-3 mr-1" />
             상세보기
@@ -982,7 +986,7 @@ export default function UnselectedProjectsPage() {
                         <div className="font-medium text-gray-900">{selectedProject.mainOrg}</div>
                       </div>
                       <div>
-                        <span className="text-gray-600">신청예산:</span>
+                        <span className="text-gray-600">정부지원예산:</span>
                         <div className="font-medium text-gray-900">{formatBudget(selectedProject.budget)}</div>
                       </div>
                       <div>

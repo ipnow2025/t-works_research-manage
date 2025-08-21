@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input"
 import { Plus, Trash2, ChevronDown, Edit2, Check, X } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { apiFetch } from "@/lib/func"
+import { Badge } from "@/components/ui/badge"
+import { User, Phone, Smartphone, Mail } from "lucide-react"
 
 interface Member {
   id: string
@@ -44,6 +46,18 @@ export function Consortium({ project, onConsortiumChange }: ConsortiumProps) {
   useEffect(() => {
     onConsortiumChangeRef.current = onConsortiumChange
   }, [onConsortiumChange])
+
+  // 고유 ID 생성을 위한 카운터
+  const [idCounter, setIdCounter] = useState(0)
+  
+  // 고유 ID 생성 함수
+  const generateUniqueId = useCallback((prefix: string) => {
+    const timestamp = Date.now()
+    const random = Math.random().toString(36).substr(2, 9)
+    const counter = idCounter
+    setIdCounter(prev => prev + 1)
+    return `${prefix}-${timestamp}-${random}-${counter}`
+  }, [idCounter])
 
   // 프로젝트 데이터를 기반으로 사업 유형과 기간 계산
   const calculateProjectTypeAndDuration = () => {
@@ -101,7 +115,8 @@ export function Consortium({ project, onConsortiumChange }: ConsortiumProps) {
         id: org.id.toString(),
         name: org.organization_name,
         type: org.organization_type === '주관기관' ? '주관' : 
-              org.organization_type === '공동연구개발기관' ? '공동' : '참여',
+              org.organization_type === '참여기관' ? '참여' : 
+              org.organization_type === '공동연구개발기관' ? '공동' : '수요',
         members: [], // 구성원은 별도 API로 가져와야 함
         isNew: false
       }))
@@ -113,6 +128,78 @@ export function Consortium({ project, onConsortiumChange }: ConsortiumProps) {
   const [editingOrg, setEditingOrg] = useState<string | null>(null)
   const [editForm, setEditForm] = useState<any>({})
   const [loading, setLoading] = useState(false)
+
+  // 연차별 컨소시엄 데이터 자동 복사 함수
+  const copyConsortiumToOtherYears = async () => {
+    if (!project?.id || projectType !== "multi") return;
+    
+    try {
+      setLoading(true);
+      
+      // 1차년도 데이터를 2,3,4,5차년도에 복사
+      const targetYears = [2, 3, 4, 5].filter(year => year <= projectDuration);
+      
+      if (targetYears.length === 0) {
+        alert('복사할 대상 연차가 없습니다.');
+        return;
+      }
+
+      // 기관 데이터 복사
+      const orgResponse = await apiFetch('/api/project-consortium-organizations', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          projectPlanningId: project.id,
+          sourceYear: 1,
+          targetYears: targetYears
+        })
+      });
+
+      const orgResult = await orgResponse.json();
+      
+      if (!orgResult.success) {
+        throw new Error(orgResult.error || '기관 데이터 복사에 실패했습니다.');
+      }
+
+      // 구성원 데이터 복사
+      const memberResponse = await apiFetch('/api/project-consortium-members', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          projectPlanningId: project.id,
+          sourceYear: 1,
+          targetYears: targetYears
+        })
+      });
+
+      const memberResult = await memberResponse.json();
+      
+      if (!memberResult.success) {
+        throw new Error(memberResult.error || '구성원 데이터 복사에 실패했습니다.');
+      }
+
+      // 성공 메시지 표시
+      alert(`${orgResult.message}\n${memberResult.message}`);
+      
+      // 복사된 연차들의 데이터를 새로고침
+      for (const year of targetYears) {
+        await fetchConsortiumOrganizations(project.id, year);
+      }
+      
+      // 1차년도 데이터도 새로고침하여 최신 상태 유지
+      await fetchConsortiumOrganizations(project.id, 1);
+      
+    } catch (error) {
+      console.error('컨소시엄 데이터 복사 중 오류:', error);
+      alert(`컨소시엄 데이터 복사 중 오류가 발생했습니다: ${error instanceof Error ? error.message : '알 수 없는 오류'}`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // 컨소시엄 구성원 데이터 가져오기
   const fetchConsortiumMembers = async (projectId: number, year: number = 1) => {
@@ -173,7 +260,8 @@ export function Consortium({ project, onConsortiumChange }: ConsortiumProps) {
           id: org.id.toString(),
           name: org.organization_name,
           type: org.organization_type === '주관기관' ? '주관' : 
-                org.organization_type === '공동연구개발기관' ? '공동' : '참여',
+                org.organization_type === '참여기관' ? '참여' : 
+                org.organization_type === '공동연구개발기관' ? '공동' : '수요',
           members: [], // 구성원은 별도 API로 가져와야 함
           isNew: false
         }))
@@ -256,7 +344,8 @@ export function Consortium({ project, onConsortiumChange }: ConsortiumProps) {
           projectPlanningId: project.id,
           year: projectType === "multi" ? selectedYear : 1,
           organizationType: organizationData.type === '주관' ? '주관기관' : 
-                           organizationData.type === '공동' ? '공동연구개발기관' : '참여기관',
+                           organizationData.type === '참여' ? '참여기관' : 
+                           organizationData.type === '공동' ? '공동연구개발기관' : '수요기업',
           organizationName: organizationData.name,
           roleDescription: ''
         })
@@ -397,7 +486,8 @@ export function Consortium({ project, onConsortiumChange }: ConsortiumProps) {
         body: JSON.stringify({
           id: orgId,
           organizationType: orgData.type === '주관' ? '주관기관' : 
-                           orgData.type === '공동' ? '공동연구개발기관' : '참여기관',
+                           orgData.type === '참여' ? '참여기관' : 
+                           orgData.type === '공동' ? '공동연구개발기관' : '수요기업',
           organizationName: orgData.name,
           roleDescription: ''
         })
@@ -443,7 +533,7 @@ export function Consortium({ project, onConsortiumChange }: ConsortiumProps) {
   // 기관 추가 처리
   const handleAddOrganization = async () => {
     const newOrg: Organization = {
-      id: `temp-${Date.now()}`,
+      id: generateUniqueId('temp'),
       name: '',
       type: '참여',
       members: [],
@@ -452,9 +542,28 @@ export function Consortium({ project, onConsortiumChange }: ConsortiumProps) {
     
     if (projectType === "multi") {
       const currentOrgs = getCurrentYearOrganizations()
-      setYearOrganizations(selectedYear, [...currentOrgs, newOrg])
+      const updatedOrgs = [...currentOrgs, newOrg]
+      setYearOrganizations(selectedYear, updatedOrgs)
+      // 부모 컴포넌트에 변경사항 알림
+      if (onConsortiumChangeRef.current) {
+        onConsortiumChangeRef.current({
+          projectType,
+          projectDuration,
+          organizations: updatedOrgs,
+          yearlyOrganizations: { ...yearlyOrganizations, [selectedYear]: updatedOrgs }
+        })
+      }
     } else {
-      setOrganizations(prev => [...prev, newOrg])
+      const updatedOrgs = [...organizations, newOrg]
+      setOrganizations(updatedOrgs)
+      // 부모 컴포넌트에 변경사항 알림
+      if (onConsortiumChangeRef.current) {
+        onConsortiumChangeRef.current({
+          projectType,
+          projectDuration,
+          organizations: updatedOrgs
+        })
+      }
     }
   }
 
@@ -464,15 +573,59 @@ export function Consortium({ project, onConsortiumChange }: ConsortiumProps) {
       // 임시 기관인 경우 상태에서만 제거
       if (projectType === "multi") {
         const currentOrgs = getCurrentYearOrganizations()
-        setYearOrganizations(selectedYear, currentOrgs.filter(org => org.id !== orgId))
+        const updatedOrgs = currentOrgs.filter(org => org.id !== orgId)
+        setYearOrganizations(selectedYear, updatedOrgs)
+        // 부모 컴포넌트에 변경사항 알림
+        if (onConsortiumChangeRef.current) {
+          onConsortiumChangeRef.current({
+            projectType,
+            projectDuration,
+            organizations: updatedOrgs,
+            yearlyOrganizations: { ...yearlyOrganizations, [selectedYear]: updatedOrgs }
+          })
+        }
       } else {
-        setOrganizations(prev => prev.filter(org => org.id !== orgId))
+        const updatedOrgs = organizations.filter(org => org.id !== orgId)
+        setOrganizations(updatedOrgs)
+        // 부모 컴포넌트에 변경사항 알림
+        if (onConsortiumChangeRef.current) {
+          onConsortiumChangeRef.current({
+            projectType,
+            projectDuration,
+            organizations: updatedOrgs
+          })
+        }
       }
     } else {
       // 실제 기관인 경우 API 호출
       const result = await deleteConsortiumOrganization(orgId)
       if (!result.success) {
         alert(result.error || '기관 삭제 중 오류가 발생했습니다.')
+      } else {
+        // 삭제 성공 후 상태 업데이트 및 부모 컴포넌트에 알림
+        if (projectType === "multi") {
+          const currentOrgs = getCurrentYearOrganizations()
+          const updatedOrgs = currentOrgs.filter(org => org.id !== orgId)
+          setYearOrganizations(selectedYear, updatedOrgs)
+          if (onConsortiumChangeRef.current) {
+            onConsortiumChangeRef.current({
+              projectType,
+              projectDuration,
+              organizations: updatedOrgs,
+              yearlyOrganizations: { ...yearlyOrganizations, [selectedYear]: updatedOrgs }
+            })
+          }
+        } else {
+          const updatedOrgs = organizations.filter(org => org.id !== orgId)
+          setOrganizations(updatedOrgs)
+          if (onConsortiumChangeRef.current) {
+            onConsortiumChangeRef.current({
+              projectType,
+              projectDuration,
+              organizations: updatedOrgs
+            })
+          }
+        }
       }
     }
   }
@@ -480,7 +633,7 @@ export function Consortium({ project, onConsortiumChange }: ConsortiumProps) {
   // 구성원 추가 처리
   const handleAddMember = async (orgId: string) => {
     const newMember: Member = {
-      id: `temp-${Date.now()}`,
+      id: generateUniqueId('temp'),
       name: '',
       position: '',
       role: '',
@@ -681,11 +834,32 @@ export function Consortium({ project, onConsortiumChange }: ConsortiumProps) {
         // 새 기관인 경우 API 호출
         const result = await addConsortiumOrganization(orgToSave)
         
-        // 성공 시 해당 연차의 기관만 다시 가져오기
-        if (projectType === "multi") {
-          await fetchConsortiumOrganizations(project.id, selectedYear)
-        } else {
-          await fetchConsortiumOrganizations(project.id, 1)
+        if (result.success) {
+          // 성공 시 해당 연차의 기관만 다시 가져오기
+          if (projectType === "multi") {
+            await fetchConsortiumOrganizations(project.id, selectedYear)
+          } else {
+            await fetchConsortiumOrganizations(project.id, 1)
+          }
+          
+          // 부모 컴포넌트에 변경사항 알림
+          if (onConsortiumChangeRef.current) {
+            if (projectType === "multi") {
+              const currentOrgs = getCurrentYearOrganizations()
+              onConsortiumChangeRef.current({
+                projectType,
+                projectDuration,
+                organizations: currentOrgs,
+                yearlyOrganizations: { ...yearlyOrganizations, [selectedYear]: currentOrgs }
+              })
+            } else {
+              onConsortiumChangeRef.current({
+                projectType,
+                projectDuration,
+                organizations: organizations
+              })
+            }
+          }
         }
       } else if (orgToSave) {
         // 기존 기관인 경우 API 호출
@@ -696,6 +870,25 @@ export function Consortium({ project, onConsortiumChange }: ConsortiumProps) {
           await fetchConsortiumOrganizations(project.id, selectedYear)
         } else {
           await fetchConsortiumOrganizations(project.id, 1)
+        }
+        
+        // 부모 컴포넌트에 변경사항 알림
+        if (onConsortiumChangeRef.current) {
+          if (projectType === "multi") {
+            const currentOrgs = getCurrentYearOrganizations()
+            onConsortiumChangeRef.current({
+              projectType,
+              projectDuration,
+              organizations: currentOrgs,
+              yearlyOrganizations: { ...yearlyOrganizations, [selectedYear]: currentOrgs }
+            })
+          } else {
+            onConsortiumChangeRef.current({
+              projectType,
+              projectDuration,
+              organizations: organizations
+            })
+          }
         }
       }
       
@@ -752,13 +945,72 @@ export function Consortium({ project, onConsortiumChange }: ConsortiumProps) {
       // 실제 기관인 경우 API 호출
       const result = await updateConsortiumOrganization(orgId, {
         organizationType: type === '주관' ? '주관기관' : 
-                         type === '공동' ? '공동연구개발기관' : '참여기관'
+                         type === '참여' ? '참여기관' : 
+                         type === '공동' ? '공동연구개발기관' : '수요기업'
       })
       if (!result.success) {
         alert(result.error || '기관 유형 수정 중 오류가 발생했습니다.')
       }
     }
   }
+
+  // 프로젝트 데이터가 변경되면 organizations 업데이트
+  useEffect(() => {
+    if (project?.id) {      
+      // 연차별 사업인 경우
+      if (projectType === "multi") {
+        // 해당 연차의 데이터 로드
+        fetchConsortiumOrganizations(project.id, selectedYear)
+      } else {
+        // 단년도 사업인 경우
+        fetchConsortiumOrganizations(project.id, 1)
+      }
+    }
+  }, [project?.id, selectedYear, projectType]) // yearlyOrganizations, organizations 제거하여 무한 루프 방지
+
+  // 프로젝트 데이터가 변경되면 사업 유형과 기간도 업데이트
+  useEffect(() => {
+    const { type, duration } = calculateProjectTypeAndDuration()
+    setProjectType(type)
+    setProjectDuration(duration)
+  }, [project])
+
+  // 컨소시엄 데이터 변경 시 부모 컴포넌트에 알림
+  useEffect(() => {
+    if (!onConsortiumChangeRef.current) return;
+    
+    let allOrganizations: Organization[] = []
+    
+    if (projectType === "multi") {
+      // 연차별 사업인 경우: 모든 연차의 기관들을 하나의 배열로 합치기 (저장된 기관만)
+      Object.values(yearlyOrganizations).forEach((yearOrgs) => {
+        const savedOrgs = yearOrgs.filter(org => !org.isNew) // 저장된 기관만 필터링
+        allOrganizations = [...allOrganizations, ...savedOrgs]
+      })
+    } else {
+      // 단년도 사업인 경우 (저장된 기관만)
+      allOrganizations = organizations.filter(org => !org.isNew)
+    }
+    
+    // 연차별 기관 정보에서 연차 정보 추출
+    const yearlyOrgsWithYears: { [key: number]: Organization[] } | undefined = projectType === "multi" ? {} : undefined;
+    if (projectType === "multi" && yearlyOrganizations) {
+      Object.keys(yearlyOrganizations).forEach(yearStr => {
+        const year = parseInt(yearStr)
+        const yearOrgs = yearlyOrganizations[year]
+        if (yearOrgs && yearOrgs.length > 0) {
+          yearlyOrgsWithYears![year] = yearOrgs.filter(org => !org.isNew)
+        }
+      })
+    }
+    
+    onConsortiumChangeRef.current({
+      projectType,
+      projectDuration,
+      organizations: allOrganizations,
+      yearlyOrganizations: yearlyOrgsWithYears
+    })
+  }, [projectType, projectDuration, organizations, yearlyOrganizations, onConsortiumChange])
 
   // 초기 데이터 로드
   useEffect(() => {
@@ -774,7 +1026,7 @@ export function Consortium({ project, onConsortiumChange }: ConsortiumProps) {
     }
     
     loadInitialData()
-  }, [project?.id])
+  }, [project?.id, projectType, selectedYear])
 
   const getOrgIcon = (type: string) => {
     switch (type) {
@@ -856,7 +1108,20 @@ export function Consortium({ project, onConsortiumChange }: ConsortiumProps) {
           {/* 연차별 관리 (연차별 사업인 경우) */}
           {projectType === "multi" && projectDuration > 1 && (
             <div className="border-t pt-4">
-              <label className="text-sm font-medium text-gray-700 mb-2 block">연차별 관리</label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-sm font-medium text-gray-700">연차별 관리</label>
+                {selectedYear === 1 && (
+                  <Button
+                    onClick={copyConsortiumToOtherYears}
+                    disabled={loading}
+                    variant="outline"
+                    size="sm"
+                    className="text-blue-600 border-blue-300 hover:bg-blue-50"
+                  >
+                    {loading ? '복사 중...' : '1차년도 → 전체 연차 복사'}
+                  </Button>
+                )}
+              </div>
               <div className="flex gap-2">
                 {Array.from({ length: projectDuration }, (_, i) => i + 1).map((year) => (
                   <Button
@@ -910,6 +1175,12 @@ export function Consortium({ project, onConsortiumChange }: ConsortiumProps) {
                           <SelectItem value="참여" className="bg-white hover:bg-gray-50">
                             참여
                           </SelectItem>
+                          <SelectItem value="공동" className="bg-white hover:bg-gray-50">
+                            공동
+                          </SelectItem>
+                          <SelectItem value="수요" className="bg-white hover:bg-gray-50">
+                            수요
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -949,129 +1220,52 @@ export function Consortium({ project, onConsortiumChange }: ConsortiumProps) {
                 {(() => {
                   return org.members.length > 0 ? (
                     org.members.map((member) => (
-                      <div key={member.id} className="border rounded-lg p-4 bg-gray-50">
-                        <div className="flex justify-between items-start mb-4">
-                          <div className="grid grid-cols-3 gap-8 flex-1">
+                      <div key={member.id} className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-3 hover:shadow-sm transition-all duration-200">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-6 text-sm">
                             <div className="min-w-0">
-                              <div className="text-sm text-gray-600 mb-1">이름</div>
+                              <div className="text-xs text-gray-600 mb-1 font-medium">이름</div>
                               {editingMember === member.id ? (
                                 <Input
                                   value={editForm.name || ""}
                                   onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                                  className="h-10 text-base"
+                                  className="h-8 text-sm border-blue-200 focus:border-blue-400"
                                   placeholder="이름을 입력하세요"
                                 />
                               ) : (
-                                <div className="font-medium truncate h-10 flex items-center">{member.name}</div>
+                                <div className="font-semibold truncate h-8 flex items-center text-sm text-gray-800">{member.name}</div>
                               )}
                             </div>
                             <div className="min-w-0">
-                              <div className="text-sm text-gray-600 mb-1">직급</div>
+                              <div className="text-xs text-gray-600 mb-1 font-medium">직급</div>
                               {editingMember === member.id ? (
                                 <Input
                                   value={editForm.position || ""}
                                   onChange={(e) => setEditForm({ ...editForm, position: e.target.value })}
-                                  className="h-10 text-base"
+                                  className="h-8 text-sm border-blue-200 focus:border-blue-400"
                                   placeholder="직급을 입력하세요"
                                 />
                               ) : (
-                                <div className="font-medium truncate h-10 flex items-center">{member.position}</div>
-                              )}
-                            </div>
-                            <div className="min-w-0">
-                              <div className="text-sm text-gray-600 mb-1">역할</div>
-                              {editingMember === member.id ? (
-                                <Input
-                                  value={editForm.role || ""}
-                                  onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
-                                  className="h-10 text-base"
-                                  placeholder="역할을 입력하세요"
-                                />
-                              ) : (
-                                <div className="font-medium truncate h-10 flex items-center">{member.role}</div>
+                                <div className="font-semibold truncate h-8 flex items-center text-sm text-gray-800">{member.position}</div>
                               )}
                             </div>
                           </div>
-                          <div className="flex items-center gap-1 ml-4">
-                            {editingMember === member.id ? (
-                              <>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={handleSaveMember}
-                                  className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                                >
-                                  <Check className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={handleCancelEdit}
-                                  className="text-gray-400 hover:text-gray-600 hover:bg-gray-50"
-                                >
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              </>
-                            ) : (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleEditMember(member)}
-                                className="text-gray-400 hover:text-blue-500 hover:bg-blue-50"
-                              >
-                                <Edit2 className="h-4 w-4" />
-                              </Button>
-                            )}
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleRemoveMember(org.id, member.id)}
-                              className="text-gray-400 hover:text-red-500 hover:bg-red-50"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-3 gap-8">
-                          <div className="min-w-0">
-                            <div className="text-sm text-gray-600 mb-1">전화번호</div>
-                            {editingMember === member.id ? (
-                              <Input
-                                value={editForm.phone || ""}
-                                onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
-                                className="h-10 text-base"
-                                placeholder="전화번호를 입력하세요"
-                              />
-                            ) : (
-                              <div className="text-sm truncate h-10 flex items-center">{member.phone}</div>
-                            )}
-                          </div>
-                          <div className="min-w-0">
-                            <div className="text-sm text-gray-600 mb-1">휴대폰</div>
-                            {editingMember === member.id ? (
-                              <Input
-                                value={editForm.mobile || ""}
-                                onChange={(e) => setEditForm({ ...editForm, mobile: e.target.value })}
-                                className="h-10 text-base"
-                                placeholder="휴대폰을 입력하세요"
-                              />
-                            ) : (
-                              <div className="text-sm truncate h-10 flex items-center">{member.mobile}</div>
-                            )}
-                          </div>
-                          <div className="min-w-0">
-                            <div className="text-sm text-gray-600 mb-1">이메일</div>
-                            {editingMember === member.id ? (
-                              <Input
-                                value={editForm.email || ""}
-                                onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                                className="h-10 text-base"
-                                placeholder="이메일을 입력하세요"
-                              />
-                            ) : (
-                              <div className="text-sm truncate h-10 flex items-center">{member.email}</div>
-                            )}
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-xs px-2 py-0.5 bg-white border-blue-200 text-blue-700 flex-shrink-0">{member.role}</Badge>
+                            <div className="flex items-center gap-1 min-w-0">
+                              <Phone className="h-3 w-3 text-blue-500 flex-shrink-0" />
+                              <span className="truncate text-gray-700">{member.phone}</span>
+                            </div>
+                            <span className="text-gray-600 flex-shrink-0">|</span>
+                            <div className="flex items-center gap-1 min-w-0">
+                              <Smartphone className="h-3 w-3 text-blue-500 flex-shrink-0" />
+                              <span className="truncate text-gray-700">{member.mobile}</span>
+                            </div>
+                            <span className="text-gray-600 flex-shrink-0">|</span>
+                            <div className="flex items-center gap-1 min-w-0">
+                              <Mail className="h-3 w-3 text-blue-500 flex-shrink-0" />
+                              <span className="truncate text-gray-700">{member.email}</span>
+                            </div>
                           </div>
                         </div>
                       </div>

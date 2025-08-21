@@ -119,7 +119,8 @@ export function AddTaskDialog({ isOpen, onClose, onAdd, onEdit, defaultStatus, e
               className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
             />
           </div>
-          {defaultStatus === "in-progress" && (
+          {/* 진행중인 작업일 때는 시작일 입력 필드를 표시하지 않음 */}
+          {/* {defaultStatus === "in-progress" && (
             <div>
               <Label htmlFor="startDate" className="text-gray-700">
                 시작일
@@ -132,7 +133,7 @@ export function AddTaskDialog({ isOpen, onClose, onAdd, onEdit, defaultStatus, e
                 className="bg-white border-gray-300 text-gray-900"
               />
             </div>
-          )}
+          )} */}
           <div>
             <Label htmlFor="dueDate" className="text-gray-700">
               마감일

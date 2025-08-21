@@ -20,27 +20,38 @@ interface TaskCardProps {
   onDelete: (taskId: string) => void
   onEdit: (taskId: string, updatedTask: Partial<Task>) => void
   onStatusChange: (taskId: string, newStatus: Task["status"]) => void
+  onDoubleClick?: (task: Task) => void
 }
 
-export function TaskCard({ task, onDelete, onEdit, onStatusChange }: TaskCardProps) {
+export function TaskCard({ task, onDelete, onEdit, onStatusChange, onDoubleClick }: TaskCardProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editedTask, setEditedTask] = useState(task)
 
-  const getDateText = () => {
-    if (task.status === "in-progress" && task.startDate && task.dueDate) {
-      return (
-        <div className="text-xs text-gray-500 mt-2">
-          <div>시작: {task.startDate}</div>
-          <div>마감: {task.dueDate}</div>
-        </div>
-      )
-    } else if (task.dueDate) {
-      return <div className="text-xs text-gray-500 mt-2">완료: {task.dueDate}</div>
+  const handleCardDoubleClick = (e: React.MouseEvent) => {
+    // 버튼 영역을 더블클릭한 경우 상세보기 실행하지 않음
+    if ((e.target as HTMLElement).closest('button')) {
+      return
     }
-    return null
+    onDoubleClick?.(task)
+  }
+
+  const isOverdue = () => {
+    // 완료된 작업은 지연 상태가 아님
+    if (task.status === "completed") return false
+    if (!task.dueDate) return false
+    const today = new Date()
+    const dueDate = new Date(task.dueDate)
+    today.setHours(0, 0, 0, 0)
+    dueDate.setHours(0, 0, 0, 0)
+    return dueDate < today
   }
 
   const getCardBackground = () => {
+    // 마감일이 지난 작업은 빨간색 테두리로 강조
+    if (isOverdue()) {
+      return "bg-red-50 border-red-300"
+    }
+    
     switch (task.status) {
       case "in-progress":
         return "bg-white border-blue-200"
@@ -49,6 +60,28 @@ export function TaskCard({ task, onDelete, onEdit, onStatusChange }: TaskCardPro
       default:
         return "bg-white border-gray-200"
     }
+  }
+
+  const getDateText = () => {
+    if (task.status === "in-progress" && task.startDate && task.dueDate) {
+      return (
+        <div className="text-xs text-gray-500 mt-2">
+          <div>시작: {task.startDate}</div>
+          <div className={isOverdue() ? "text-red-600 font-medium" : ""}>
+            마감: {task.dueDate}
+            {isOverdue() && <span className="ml-1 text-red-600">(지연)</span>}
+          </div>
+        </div>
+      )
+    } else if (task.dueDate) {
+      return (
+        <div className={`text-xs mt-2 ${isOverdue() ? "text-red-600 font-medium" : "text-gray-500"}`}>
+          마감: {task.dueDate}
+          {isOverdue() && <span className="ml-1 text-red-600">(지연)</span>}
+        </div>
+      )
+    }
+    return null
   }
 
   const moveToNext = () => {
@@ -125,7 +158,10 @@ export function TaskCard({ task, onDelete, onEdit, onStatusChange }: TaskCardPro
   }
 
   return (
-    <div className={`p-4 rounded-lg border ${getCardBackground()} shadow-sm`}>
+    <div 
+      className={`p-4 rounded-lg border ${getCardBackground()} shadow-sm cursor-pointer hover:shadow-md transition-shadow`}
+      onDoubleClick={handleCardDoubleClick}
+    >
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <h4 className="font-semibold text-sm mb-1 text-gray-900">{task.title}</h4>

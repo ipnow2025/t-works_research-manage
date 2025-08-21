@@ -244,13 +244,13 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
               </div>
             </div>
             <div>
-              <Label htmlFor="total_cost">총 사업비 (천원) *</Label>
+              <Label htmlFor="total_cost">정부지원예산 (천원) *</Label>
               <Input
                 id="total_cost"
                 type="number"
                 value={formData.total_cost}
                 onChange={(e) => handleInputChange('total_cost', parseInt(e.target.value) || 0)}
-                placeholder="총 사업비를 입력하세요"
+                placeholder="정부지원예산을 입력하세요"
               />
             </div>
           </CardContent>

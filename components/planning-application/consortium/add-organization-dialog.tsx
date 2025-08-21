@@ -83,6 +83,12 @@ export function AddOrganizationDialog({ open, onOpenChange, onAddOrganization }:
                 <SelectItem value="참여" className="text-white hover:bg-gray-600">
                   참여
                 </SelectItem>
+                <SelectItem value="공동" className="text-white hover:bg-gray-600">
+                  공동
+                </SelectItem>
+                <SelectItem value="수요" className="text-white hover:bg-gray-600">
+                  수요
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>

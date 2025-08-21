@@ -197,8 +197,10 @@ export default function OngoingPage() {
   }
 
   // 상세 페이지로 이동
-  const handleViewProject = (project: OngoingProject, e: React.MouseEvent) => {
-    e.stopPropagation() // 부모 요소의 클릭 이벤트 방지
+  const handleViewProject = (project: OngoingProject, e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation() // 부모 요소의 클릭 이벤트 방지
+    }
     router.push(`/ongoing/${project.id}`)
   }
 
@@ -411,7 +413,8 @@ export default function OngoingPage() {
                 filteredProjects.map((project) => (
                   <div
                     key={project.id}
-                    className="border border-gray-200 dark:border-gray-700 rounded-lg p-6 hover:border-blue-300 transition-colors"
+                    className="border border-gray-200 dark:border-gray-700 rounded-lg p-6 hover:border-blue-300 transition-colors cursor-pointer"
+                    onDoubleClick={() => handleViewProject(project)}
                   >
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-2">
@@ -422,7 +425,7 @@ export default function OngoingPage() {
                           </span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2" onDoubleClick={(e) => e.stopPropagation()}>
                         <Button
                           variant="outline"
                           size="sm"
@@ -454,10 +457,10 @@ export default function OngoingPage() {
                     </div>
 
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm mb-4">
-                      <div>
+                      {/* <div>
                         <span className="text-muted-foreground">과제 ID:</span>
                         <div className="font-medium">{project.id}</div>
-                      </div>
+                      </div> */}
                       <div>
                         <span className="text-muted-foreground">주관기관:</span>
                         <div className="font-medium">{project.lead_organization || '미지정'}</div>
@@ -477,7 +480,7 @@ export default function OngoingPage() {
                         </div>
                       </div>
                       <div>
-                        <span className="text-muted-foreground">예산:</span>
+                        <span className="text-muted-foreground">정부지원예산:</span>
                         <div className="font-medium">{formatBudget(project.total_cost)}</div>
                       </div>
                       <div>
