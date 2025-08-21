@@ -1,9 +1,11 @@
 "use client"
 
 import { useState } from "react"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { FileText } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Plus, Trash2, Edit } from "lucide-react"
 import FileView from "@/components/FileView"
 
 interface DocumentItem {
@@ -13,12 +15,29 @@ interface DocumentItem {
   functionName: string
 }
 
+interface DocumentChecklistItem {
+  id: string
+  name: string
+  isCompleted: boolean
+}
+
 interface DocumentManagementProps {
   project: any
 }
 
 export function DocumentManagement({ project }: DocumentManagementProps) {
-  const [selectedDocument, setSelectedDocument] = useState<string>("1")
+  const [selectedDocument] = useState<string>("1")
+  const [checklistItems, setChecklistItems] = useState<DocumentChecklistItem[]>([
+    { id: "1", name: "사업계획서", isCompleted: false },
+    { id: "2", name: "예산계획서", isCompleted: false },
+    { id: "3", name: "기관현황서", isCompleted: false },
+    { id: "4", name: "연구개발비 사용계획서", isCompleted: false },
+    { id: "5", name: "위탁연구개발계약서", isCompleted: false },
+    { id: "6", name: "사업자등록증", isCompleted: false },
+  ])
+  const [newItemName, setNewItemName] = useState("")
+  const [editingItem, setEditingItem] = useState<string | null>(null)
+  const [editingName, setEditingName] = useState("")
   
   const documents: DocumentItem[] = [
     {
@@ -61,29 +80,123 @@ export function DocumentManagement({ project }: DocumentManagementProps) {
 
   const selectedDoc = documents.find((doc) => doc.id === selectedDocument)
 
+  const addChecklistItem = () => {
+    if (newItemName.trim()) {
+      const newItem: DocumentChecklistItem = {
+        id: Date.now().toString(),
+        name: newItemName.trim(),
+        isCompleted: false
+      }
+      setChecklistItems([...checklistItems, newItem])
+      setNewItemName("")
+    }
+  }
+
+  const deleteChecklistItem = (id: string) => {
+    setChecklistItems(checklistItems.filter(item => item.id !== id))
+  }
+
+  const toggleCompleted = (id: string) => {
+    setChecklistItems(checklistItems.map(item =>
+      item.id === id ? { ...item, isCompleted: !item.isCompleted } : item
+    ))
+  }
+
+  const startEditing = (item: DocumentChecklistItem) => {
+    setEditingItem(item.id)
+    setEditingName(item.name)
+  }
+
+  const saveEdit = (id: string) => {
+    if (editingName.trim()) {
+      setChecklistItems(checklistItems.map(item =>
+        item.id === id ? { ...item, name: editingName.trim() } : item
+      ))
+    }
+    setEditingItem(null)
+    setEditingName("")
+  }
+
+  const cancelEdit = () => {
+    setEditingItem(null)
+    setEditingName("")
+  }
+
+  const completedCount = checklistItems.filter(item => item.isCompleted).length
+  const totalCount = checklistItems.length
+
   return (
     <div className="space-y-6">
-      {/* 서류 목록 카드 */}
+             {/* 제출서류철 체크리스트 섹션 */}
       <Card>
+                 <CardHeader>
+           <CardTitle className="flex items-center justify-between text-lg">
+             <span>제출서류철 체크리스트</span>
+             <div className="text-sm text-muted-foreground">
+               완료: {completedCount}/{totalCount}
+             </div>
+           </CardTitle>
+         </CardHeader>
         <CardContent className="p-6">
-          <h3 className="font-semibold text-lg mb-4">제출서류 목록</h3>
+          {/* 새 항목 추가 */}
+          <div className="flex gap-2 mb-4">
+            <Input
+              placeholder="새로운 서류명을 입력하세요"
+              value={newItemName}
+              onChange={(e) => setNewItemName(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && addChecklistItem()}
+              className="flex-1"
+            />
+            <Button onClick={addChecklistItem} size="sm">
+              <Plus className="w-4 h-4 mr-1" />
+              추가
+            </Button>
+          </div>
+
+          {/* 체크리스트 */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {documents.map((doc) => (
-              <div
-                key={doc.id}
-                className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                  selectedDocument === doc.id
-                    ? "bg-blue-50 border-blue-200"
-                    : "hover:bg-gray-50 border-gray-200"
-                }`}
-                onClick={() => setSelectedDocument(doc.id)}
-              >
-                <div className="flex items-center gap-3">
-                  <FileText className="w-5 h-5 text-blue-500" />
-                  <div>
-                    <h4 className="font-medium">{doc.name}</h4>
-                    <p className="text-sm text-gray-500">{doc.type.toUpperCase()} 파일</p>
-                  </div>
+            {checklistItems.map((item) => (
+              <div key={item.id} className="flex items-center gap-3 p-3 border rounded-lg">
+                <Checkbox
+                  checked={item.isCompleted}
+                  onCheckedChange={() => toggleCompleted(item.id)}
+                />
+                <div className="flex-1">
+                  {editingItem === item.id ? (
+                    <div className="flex gap-2">
+                      <Input
+                        value={editingName}
+                        onChange={(e) => setEditingName(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && saveEdit(item.id)}
+                        className="flex-1"
+                      />
+                      <Button size="sm" onClick={() => saveEdit(item.id)}>저장</Button>
+                      <Button size="sm" variant="outline" onClick={cancelEdit}>취소</Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <span className={`font-medium ${item.isCompleted ? 'line-through text-muted-foreground' : ''}`}>
+                        {item.name}
+                      </span>
+                      <div className="flex gap-1">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => startEditing(item)}
+                        >
+                          <Edit className="w-3 h-3" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => deleteChecklistItem(item.id)}
+                          className="text-red-500 hover:text-red-700"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -95,7 +208,7 @@ export function DocumentManagement({ project }: DocumentManagementProps) {
       {selectedDoc && (
         <Card>
           <CardContent className="p-6">
-            <h3 className="font-semibold text-lg mb-4">{selectedDoc.name} 파일 관리</h3>
+            <h3 className="font-semibold text-lg mb-4">제출서류 파일 관리</h3>
             <FileView 
               functionName={selectedDoc.functionName} 
               refIdx={project.id} 

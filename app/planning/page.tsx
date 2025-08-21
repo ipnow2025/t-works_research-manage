@@ -447,6 +447,21 @@ export default function PlanningPage() {
                       </div>
                     </div>
 
+                    {/* 공고문 링크 */}
+                    {project.announcement_link && (
+                      <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                        <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-2 text-left">공고문 링크</h4>
+                        <a 
+                          href={project.announcement_link} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-sm text-blue-600 hover:text-blue-800 underline break-all"
+                        >
+                          {project.announcement_link}
+                        </a>
+                      </div>
+                    )}
+                    
                     <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
                       <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-2 text-left">사업목적</h4>
                       <p className="text-sm text-muted-foreground whitespace-pre-wrap">{project.project_purpose}</p>

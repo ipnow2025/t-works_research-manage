@@ -320,6 +320,25 @@ export default function CompletedDetailPage() {
                   </Card>
                 </div>
 
+                {/* 공고문 링크 */}
+                {project.announcement_link && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>공고문 링크</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <a 
+                        href={project.announcement_link} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-sm text-blue-600 hover:text-blue-800 underline break-all"
+                      >
+                        {project.announcement_link}
+                      </a>
+                    </CardContent>
+                  </Card>
+                )}
+
                 <Card>
                   <CardHeader>
                     <CardTitle>프로젝트 개요</CardTitle>

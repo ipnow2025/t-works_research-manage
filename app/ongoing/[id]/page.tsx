@@ -237,6 +237,21 @@ export default function OngoingDetailPage() {
               </div>
             </div> */}
 
+            {/* 공고문 링크 */}
+            {project.announcement_link && (
+              <div className="border rounded-lg p-6">
+                <h3 className="text-lg font-medium mb-4">공고문 링크</h3>
+                <a 
+                  href={project.announcement_link} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-sm text-blue-600 hover:text-blue-800 underline break-all"
+                >
+                  {project.announcement_link}
+                </a>
+              </div>
+            )}
+
             {/* 프로젝트 개요 */}
             <div className="border rounded-lg p-6">
               <h3 className="text-lg font-medium mb-4">프로젝트 개요</h3>

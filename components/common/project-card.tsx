@@ -127,6 +127,21 @@ export function ProjectCard({
         </div>
       )}
 
+      {/* 공고문 링크 */}
+      {project.announcement_link && (
+        <div className="mb-3">
+          <h4 className="text-sm font-bold text-gray-800 mb-2">공고문 링크</h4>
+          <a 
+            href={project.announcement_link} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-sm text-blue-600 hover:text-blue-800 underline break-all"
+          >
+            {project.announcement_link}
+          </a>
+        </div>
+      )}
+
       {/* 프로젝트 설명 */}
       {project.description && <p className="text-sm text-gray-600 mb-3 line-clamp-2">{project.description}</p>}
 
