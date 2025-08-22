@@ -1114,6 +1114,610 @@ export function BudgetComposition({ project, consortiumData }: BudgetComposition
   const renderBudgetTable = (orgId?: string) => {
     const isTotal = !orgId
 
+    // 전체 예산 현황일 때는 간단한 요약 테이블 렌더링
+    if (isTotal) {
+      return (
+        <div className="space-y-6">
+          {/* 전체 예산 요약 카드 */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Card className="bg-blue-50 border-blue-200">
+              <CardContent className="p-4 text-center">
+                <div className="text-blue-600 text-sm mb-2">총 예산</div>
+                <div className="text-blue-700 text-xl font-bold">
+                  {calculateGrandTotal().toLocaleString()}
+                  {budgetUnit}
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="bg-green-50 border-green-200">
+              <CardContent className="p-4 text-center">
+                <div className="text-green-600 text-sm mb-2">현금 예산</div>
+                <div className="text-green-700 text-xl font-bold">
+                  {availableYears
+                    .reduce((total, year) => total + calculateTotalTypeYearTotal("cash", year), 0)
+                    .toLocaleString()}
+                  {budgetUnit}
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="bg-orange-50 border-orange-200">
+              <CardContent className="p-4 text-center">
+                <div className="text-orange-600 text-sm mb-2">현물 예산</div>
+                <div className="text-orange-700 text-xl font-bold">
+                  {availableYears
+                    .reduce((total, year) => total + calculateTotalTypeYearTotal("inkind", year), 0)
+                    .toLocaleString()}
+                  {budgetUnit}
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="bg-purple-50 border-purple-200">
+              <CardContent className="p-4 text-center">
+                <div className="text-purple-600 text-sm mb-2">현물 비율</div>
+                <div className="text-purple-700 text-xl font-bold">
+                  {calculateGrandTotal() > 0
+                    ? Math.round(
+                        (availableYears.reduce((total, year) => total + calculateTotalTypeYearTotal("inkind", year), 0) /
+                          calculateGrandTotal()) *
+                          100,
+                      )
+                    : 0}
+                  %
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* 상세 예산 분류 테이블 */}
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse border border-gray-300 text-sm">
+              <thead>
+                <tr className="bg-gray-100">
+                  <th className="border border-gray-300 p-2 text-center font-semibold bg-gray-200 min-w-[80px]">비목</th>
+                  <th className="border border-gray-300 p-2 text-center font-semibold bg-gray-200 min-w-[120px]">항목</th>
+                  <th className="border border-gray-300 p-2 text-center font-semibold bg-green-100" colSpan={availableYears.length + 1}>
+                    직접비
+                  </th>
+                  <th className="border border-gray-300 p-2 text-center font-semibold bg-purple-100 min-w-[80px]">간접비</th>
+                  <th className="border border-gray-300 p-2 text-center font-semibold bg-blue-100" colSpan={2}>
+                    연구개발비 총액
+                  </th>
+                </tr>
+                <tr className="bg-gray-100">
+                  <th className="border border-gray-300 p-1 text-center text-xs font-medium bg-gray-200"></th>
+                  <th className="border border-gray-300 p-1 text-center text-xs font-medium bg-gray-200"></th>
+                  {/* 연차별 헤더 */}
+                  {availableYears.map((year) => (
+                    <th key={year} className="border border-gray-300 p-1 text-center text-xs font-medium bg-green-50 min-w-[80px]">
+                      {year}차년도
+                    </th>
+                  ))}
+                  <th className="border border-gray-300 p-1 text-center text-xs font-medium bg-green-100 min-w-[80px]">합계</th>
+                  <th className="border border-gray-300 p-1 text-center text-xs font-medium bg-purple-100 min-w-[80px]">합계</th>
+                  {availableYears.map((year) => (
+                    <th key={year} className="border border-gray-300 p-1 text-center text-xs font-medium bg-blue-50 min-w-[80px]">
+                      {year}차년도
+                    </th>
+                  ))}
+                  <th className="border border-gray-300 p-1 text-center text-xs font-medium bg-blue-100 min-w-[80px]">합계</th>
+                </tr>
+              </thead>
+              <tbody>
+                {/* 인건비 섹션 */}
+                <tr className="bg-green-50">
+                  <td className="border border-gray-300 p-2 text-center font-semibold bg-green-100" rowSpan={6}>인건비</td>
+                  <td className="border border-gray-300 p-2 text-center font-medium bg-green-50">내부인건비(A)</td>
+                  {/* 연차별 현금 인건비 */}
+                  {availableYears.map((year) => (
+                    <td key={year} className="border border-gray-300 p-1 text-center text-xs">
+                      {calculateTotalCategoryAmount("personnel", "cash", year).toLocaleString()}
+                    </td>
+                  ))}
+                  <td className="border border-gray-300 p-1 text-center font-semibold bg-green-100 text-xs">
+                    {availableYears
+                      .reduce((total, year) => total + calculateTotalCategoryAmount("personnel", "cash", year), 0)
+                      .toLocaleString()}
+                  </td>
+                  <td className="border border-gray-300 p-1 text-center font-semibold bg-purple-100 text-xs">-</td>
+                  {/* 연차별 총액 */}
+                  {availableYears.map((year) => (
+                    <td key={year} className="border border-gray-300 p-1 text-center text-xs">
+                      {calculateTotalCategoryAmount("personnel", "cash", year).toLocaleString()}
+                    </td>
+                  ))}
+                  <td className="border border-gray-300 p-1 text-center font-semibold bg-blue-100 text-xs">
+                    {availableYears
+                      .reduce((total, year) => total + calculateTotalCategoryAmount("personnel", "cash", year), 0)
+                      .toLocaleString()}
+                  </td>
+                </tr>
+                <tr className="bg-green-50">
+                  <td className="border border-gray-300 p-2 text-center font-medium bg-green-50">내부인건비(A) 현물</td>
+                  {/* 연차별 현물 인건비 */}
+                  {availableYears.map((year) => (
+                    <td key={year} className="border border-gray-300 p-1 text-center text-xs">
+                      {calculateTotalCategoryAmount("personnel", "inkind", year).toLocaleString()}
+                    </td>
+                  ))}
+                  <td className="border border-gray-300 p-1 text-center font-semibold bg-green-100 text-xs">
+                    {availableYears
+                      .reduce((total, year) => total + calculateTotalCategoryAmount("personnel", "inkind", year), 0)
+                      .toLocaleString()}
+                  </td>
+                  <td className="border border-gray-300 p-1 text-center font-semibold bg-purple-100 text-xs">-</td>
+                  {/* 연차별 총액 */}
+                  {availableYears.map((year) => (
+                    <td key={year} className="border border-gray-300 p-1 text-center text-xs">
+                      {calculateTotalCategoryAmount("personnel", "inkind", year).toLocaleString()}
+                    </td>
+                  ))}
+                  <td className="border border-gray-300 p-1 text-center font-semibold bg-blue-100 text-xs">
+                    {availableYears
+                      .reduce((total, year) => total + calculateTotalCategoryAmount("personnel", "inkind", year), 0)
+                      .toLocaleString()}
+                  </td>
+                </tr>
+                <tr className="bg-green-50">
+                  <td className="border border-gray-300 p-2 text-center font-medium bg-green-50">외부인건비(B)</td>
+                  {/* 연차별 외부인건비 */}
+                  {availableYears.map((year) => (
+                    <td key={year} className="border border-gray-300 p-1 text-center text-xs">
+                      {calculateTotalCategoryAmount("researchAllowance", "cash", year).toLocaleString()}
+                    </td>
+                  ))}
+                  <td className="border border-gray-300 p-1 text-center font-semibold bg-green-100 text-xs">
+                    {availableYears
+                      .reduce((total, year) => total + calculateTotalCategoryAmount("researchAllowance", "cash", year), 0)
+                      .toLocaleString()}
+                  </td>
+                  <td className="border border-gray-300 p-1 text-center font-semibold bg-purple-100 text-xs">-</td>
+                  {/* 연차별 총액 */}
+                  {availableYears.map((year) => (
+                    <td key={year} className="border border-gray-300 p-1 text-center text-xs">
+                      {calculateTotalCategoryAmount("researchAllowance", "cash", year).toLocaleString()}
+                    </td>
+                  ))}
+                  <td className="border border-gray-300 p-1 text-center font-semibold bg-blue-100 text-xs">
+                    {availableYears
+                      .reduce((total, year) => total + calculateTotalCategoryAmount("researchAllowance", "cash", year), 0)
+                      .toLocaleString()}
+                  </td>
+                </tr>
+                <tr className="bg-green-50">
+                  <td className="border border-gray-300 p-2 text-center font-medium bg-green-50">연구지원인력 인건비(C)</td>
+                  {/* 연차별 연구지원인력 인건비 */}
+                  {availableYears.map((year) => (
+                    <td key={year} className="border border-gray-300 p-1 text-center text-xs">
+                      {calculateTotalCategoryAmount("researchDevelopmentBurden", "cash", year).toLocaleString()}
+                    </td>
+                  ))}
+                  <td className="border border-gray-300 p-1 text-center font-semibold bg-green-100 text-xs">
+                    {availableYears
+                      .reduce((total, year) => total + calculateTotalCategoryAmount("researchDevelopmentBurden", "cash", year), 0)
+                      .toLocaleString()}
+                  </td>
+                  <td className="border border-gray-300 p-1 text-center font-semibold bg-purple-100 text-xs">-</td>
+                  {/* 연차별 총액 */}
+                  {availableYears.map((year) => (
+                    <td key={year} className="border border-gray-300 p-1 text-center text-xs">
+                      {calculateTotalCategoryAmount("researchDevelopmentBurden", "cash", year).toLocaleString()}
+                    </td>
+                  ))}
+                  <td className="border border-gray-300 p-1 text-center font-semibold bg-blue-100 text-xs">
+                    {availableYears
+                      .reduce((total, year) => total + calculateTotalCategoryAmount("researchDevelopmentBurden", "cash", year), 0)
+                      .toLocaleString()}
+                  </td>
+                </tr>
+                <tr className="bg-green-50">
+                  <td className="border border-gray-300 p-2 text-center font-medium bg-green-50">학생 인건비(D)</td>
+                  {/* 연차별 학생 인건비 */}
+                  {availableYears.map((year) => (
+                    <td key={year} className="border border-gray-300 p-1 text-center text-xs">
+                      {calculateTotalCategoryAmount("studentPersonnel", "cash", year).toLocaleString()}
+                    </td>
+                  ))}
+                  <td className="border border-gray-300 p-1 text-center font-semibold bg-green-100 text-xs">
+                    {availableYears
+                      .reduce((total, year) => total + calculateTotalCategoryAmount("studentPersonnel", "cash", year), 0)
+                      .toLocaleString()}
+                  </td>
+                  <td className="border border-gray-300 p-1 text-center font-semibold bg-purple-100 text-xs">-</td>
+                  {/* 연차별 총액 */}
+                  {availableYears.map((year) => (
+                    <td key={year} className="border border-gray-300 p-1 text-center text-xs">
+                      {calculateTotalCategoryAmount("studentPersonnel", "cash", year).toLocaleString()}
+                    </td>
+                  ))}
+                  <td className="border border-gray-300 p-1 text-center font-semibold bg-blue-100 text-xs">
+                    {availableYears
+                      .reduce((total, year) => total + calculateTotalCategoryAmount("studentPersonnel", "cash", year), 0)
+                      .toLocaleString()}
+                  </td>
+                </tr>
+                <tr className="bg-green-100 font-semibold">
+                  <td className="border border-gray-300 p-2 text-center font-bold bg-green-200">총 인건비 (E1=A+B+C+D)</td>
+                  {/* 연차별 총 인건비 */}
+                  {availableYears.map((year) => (
+                    <td key={year} className="border border-gray-300 p-1 text-center font-bold text-xs bg-green-100">
+                      {(
+                        calculateTotalCategoryAmount("personnel", "cash", year) +
+                        calculateTotalCategoryAmount("personnel", "inkind", year) +
+                        calculateTotalCategoryAmount("researchAllowance", "cash", year) +
+                        calculateTotalCategoryAmount("researchDevelopmentBurden", "cash", year) +
+                        calculateTotalCategoryAmount("studentPersonnel", "cash", year)
+                      ).toLocaleString()}
+                    </td>
+                  ))}
+                  <td className="border border-gray-300 p-1 text-center font-bold bg-green-200 text-xs">
+                    {availableYears.reduce((total, year) => 
+                      total + 
+                      calculateTotalCategoryAmount("personnel", "cash", year) +
+                      calculateTotalCategoryAmount("personnel", "inkind", year) +
+                      calculateTotalCategoryAmount("researchAllowance", "cash", year) +
+                      calculateTotalCategoryAmount("researchDevelopmentBurden", "cash", year) +
+                      calculateTotalCategoryAmount("studentPersonnel", "cash", year), 0
+                    ).toLocaleString()}
+                  </td>
+                  <td className="border border-gray-300 p-1 text-center font-bold bg-purple-200 text-xs">-</td>
+                  {/* 연차별 총액 */}
+                  {availableYears.map((year) => (
+                    <td key={year} className="border border-gray-300 p-1 text-center font-bold text-xs bg-blue-100">
+                      {(
+                        calculateTotalCategoryAmount("personnel", "cash", year) +
+                        calculateTotalCategoryAmount("personnel", "inkind", year) +
+                        calculateTotalCategoryAmount("researchAllowance", "cash", year) +
+                        calculateTotalCategoryAmount("researchDevelopmentBurden", "cash", year) +
+                        calculateTotalCategoryAmount("studentPersonnel", "cash", year)
+                      ).toLocaleString()}
+                    </td>
+                  ))}
+                  <td className="border border-gray-300 p-1 text-center font-bold bg-blue-200 text-xs">
+                    {availableYears.reduce((total, year) => 
+                      total + 
+                      calculateTotalCategoryAmount("personnel", "cash", year) +
+                      calculateTotalCategoryAmount("personnel", "inkind", year) +
+                      calculateTotalCategoryAmount("researchAllowance", "cash", year) +
+                      calculateTotalCategoryAmount("researchDevelopmentBurden", "cash", year) +
+                      calculateTotalCategoryAmount("studentPersonnel", "cash", year), 0
+                    ).toLocaleString()}
+                  </td>
+                </tr>
+
+                {/* 인건비 비율 행 */}
+                <tr className="bg-green-50">
+                  <td className="border border-gray-300 p-2 text-center font-medium bg-green-100" colSpan={2}>인건비 비율 (E1/M)</td>
+                  {/* 연차별 인건비 비율 */}
+                  {availableYears.map((year) => {
+                    const totalYearBudget = calculateTotalYearTotal(year);
+                    const totalPersonnelCost = (
+                      calculateTotalCategoryAmount("personnel", "cash", year) +
+                      calculateTotalCategoryAmount("personnel", "inkind", year) +
+                      calculateTotalCategoryAmount("researchAllowance", "cash", year) +
+                      calculateTotalCategoryAmount("researchDevelopmentBurden", "cash", year) +
+                      calculateTotalCategoryAmount("studentPersonnel", "cash", year)
+                    );
+                    return (
+                      <td key={year} className="border border-gray-300 p-1 text-center text-xs bg-green-50">
+                        {totalYearBudget > 0 ? Math.round((totalPersonnelCost / totalYearBudget) * 100) : 0}%
+                      </td>
+                    );
+                  })}
+                  <td className="border border-gray-300 p-1 text-center font-semibold bg-green-100 text-xs">
+                    {(() => {
+                      const totalBudget = calculateGrandTotal();
+                      const totalPersonnelCost = availableYears.reduce((total, year) => 
+                        total + 
+                        calculateTotalCategoryAmount("personnel", "cash", year) +
+                        calculateTotalCategoryAmount("personnel", "inkind", year) +
+                        calculateTotalCategoryAmount("researchAllowance", "cash", year) +
+                        calculateTotalCategoryAmount("researchDevelopmentBurden", "cash", year) +
+                        calculateTotalCategoryAmount("studentPersonnel", "cash", year), 0
+                      );
+                      return totalBudget > 0 ? Math.round((totalPersonnelCost / totalBudget) * 100) : 0;
+                    })()}%
+                  </td>
+                  <td className="border border-gray-300 p-1 text-center font-semibold bg-purple-100 text-xs">-</td>
+                  {/* 연차별 총액 */}
+                  {availableYears.map((year) => (
+                    <td key={year} className="border border-gray-300 p-1 text-center text-xs bg-blue-50">
+                      {calculateTotalYearTotal(year).toLocaleString()}
+                    </td>
+                  ))}
+                  <td className="border border-gray-300 p-1 text-center font-semibold bg-blue-100 text-xs">
+                    {calculateGrandTotal().toLocaleString()}
+                  </td>
+                </tr>
+
+                {/* 연구시설·장비비 */}
+                <tr className="bg-green-50">
+                  <td className="border border-gray-300 p-2 text-center font-semibold bg-green-100" rowSpan={2}>연구시설·장비비</td>
+                  <td className="border border-gray-300 p-2 text-center font-medium bg-green-50">연구시설·장비비(F)</td>
+                  {/* 연차별 연구시설·장비비 */}
+                  {availableYears.map((year) => (
+                    <td key={year} className="border border-gray-300 p-1 text-center text-xs">
+                      {calculateTotalCategoryAmount("researchFacilities", "cash", year).toLocaleString()}
+                    </td>
+                  ))}
+                  <td className="border border-gray-300 p-1 text-center font-semibold bg-green-100 text-xs">
+                    {availableYears
+                      .reduce((total, year) => total + calculateTotalCategoryAmount("researchFacilities", "cash", year), 0)
+                      .toLocaleString()}
+                  </td>
+                  <td className="border border-gray-300 p-1 text-center font-semibold bg-purple-100 text-xs">-</td>
+                  {/* 연차별 총액 */}
+                  {availableYears.map((year) => (
+                    <td key={year} className="border border-gray-300 p-1 text-center text-xs">
+                      {calculateTotalCategoryAmount("researchFacilities", "cash", year).toLocaleString()}
+                    </td>
+                  ))}
+                  <td className="border border-gray-300 p-1 text-center font-semibold bg-blue-100 text-xs">
+                    {availableYears
+                      .reduce((total, year) => total + calculateTotalCategoryAmount("researchFacilities", "cash", year), 0)
+                      .toLocaleString()}
+                  </td>
+                </tr>
+                <tr className="bg-green-50">
+                  <td className="border border-gray-300 p-2 text-center font-medium bg-green-50">연구시설·장비비(F) 현물</td>
+                  {/* 연차별 연구시설·장비비 현물 */}
+                  {availableYears.map((year) => (
+                    <td key={year} className="border border-gray-300 p-1 text-center text-xs">
+                      {calculateTotalCategoryAmount("researchFacilities", "inkind", year).toLocaleString()}
+                    </td>
+                  ))}
+                  <td className="border border-gray-300 p-1 text-center font-semibold bg-green-100 text-xs">
+                    {availableYears
+                      .reduce((total, year) => total + calculateTotalCategoryAmount("researchFacilities", "inkind", year), 0)
+                      .toLocaleString()}
+                  </td>
+                  <td className="border border-gray-300 p-1 text-center font-semibold bg-purple-100 text-xs">-</td>
+                  {/* 연차별 총액 */}
+                  {availableYears.map((year) => (
+                    <td key={year} className="border border-gray-300 p-1 text-center text-xs">
+                      {calculateTotalCategoryAmount("researchFacilities", "inkind", year).toLocaleString()}
+                    </td>
+                  ))}
+                  <td className="border border-gray-300 p-1 text-center font-semibold bg-blue-100 text-xs">
+                    {availableYears
+                      .reduce((total, year) => total + calculateTotalCategoryAmount("researchFacilities", "inkind", year), 0)
+                      .toLocaleString()}
+                  </td>
+                </tr>
+
+                {/* 연구재료비 */}
+                <tr className="bg-green-50">
+                  <td className="border border-gray-300 p-2 text-center font-semibold bg-green-100" rowSpan={2}>연구재료비</td>
+                  <td className="border border-gray-300 p-2 text-center font-medium bg-green-50">연구재료비(G)</td>
+                  {/* 연차별 연구재료비 */}
+                  {availableYears.map((year) => (
+                    <td key={year} className="border border-gray-300 p-1 text-center text-xs">
+                      {calculateTotalCategoryAmount("researchMaterials", "cash", year).toLocaleString()}
+                    </td>
+                  ))}
+                  <td className="border border-gray-300 p-1 text-center font-semibold bg-green-100 text-xs">
+                    {availableYears
+                      .reduce((total, year) => total + calculateTotalCategoryAmount("researchMaterials", "cash", year), 0)
+                      .toLocaleString()}
+                  </td>
+                  <td className="border border-gray-300 p-1 text-center font-semibold bg-purple-100 text-xs">-</td>
+                  {/* 연차별 총액 */}
+                  {availableYears.map((year) => (
+                    <td key={year} className="border border-gray-300 p-1 text-center text-xs">
+                      {calculateTotalCategoryAmount("researchMaterials", "cash", year).toLocaleString()}
+                    </td>
+                  ))}
+                  <td className="border border-gray-300 p-1 text-center font-semibold bg-blue-100 text-xs">
+                    {availableYears
+                      .reduce((total, year) => total + calculateTotalCategoryAmount("researchMaterials", "cash", year), 0)
+                      .toLocaleString()}
+                  </td>
+                </tr>
+                <tr className="bg-green-50">
+                  <td className="border border-gray-300 p-2 text-center font-medium bg-green-50">연구재료비(G) 현물</td>
+                  {/* 연차별 연구재료비 현물 */}
+                  {availableYears.map((year) => (
+                    <td key={year} className="border border-gray-300 p-1 text-center text-xs">
+                      {calculateTotalCategoryAmount("researchMaterials", "inkind", year).toLocaleString()}
+                    </td>
+                  ))}
+                  <td className="border border-gray-300 p-1 text-center font-semibold bg-green-100 text-xs">
+                    {availableYears
+                      .reduce((total, year) => total + calculateTotalCategoryAmount("researchMaterials", "inkind", year), 0)
+                      .toLocaleString()}
+                  </td>
+                  <td className="border border-gray-300 p-1 text-center font-semibold bg-purple-100 text-xs">-</td>
+                  {/* 연차별 총액 */}
+                  {availableYears.map((year) => (
+                    <td key={year} className="border border-gray-300 p-1 text-center text-xs">
+                      {calculateTotalCategoryAmount("researchMaterials", "inkind", year).toLocaleString()}
+                    </td>
+                  ))}
+                  <td className="border border-gray-300 p-1 text-center font-semibold bg-blue-100 text-xs">
+                    {availableYears
+                      .reduce((total, year) => total + calculateTotalCategoryAmount("researchMaterials", "inkind", year), 0)
+                      .toLocaleString()}
+                  </td>
+                </tr>
+
+                {/* 연구활동비 */}
+                <tr className="bg-green-50">
+                  <td className="border border-gray-300 p-2 text-center font-semibold bg-green-100" rowSpan={2}>연구활동비</td>
+                  <td className="border border-gray-300 p-2 text-center font-medium bg-green-50">연구활동비(H)</td>
+                  {/* 연차별 연구활동비 */}
+                  {availableYears.map((year) => (
+                    <td key={year} className="border border-gray-300 p-1 text-center text-xs">
+                      {calculateTotalCategoryAmount("researchActivities", "cash", year).toLocaleString()}
+                    </td>
+                  ))}
+                  <td className="border border-gray-300 p-1 text-center font-semibold bg-green-100 text-xs">
+                    {availableYears
+                      .reduce((total, year) => total + calculateTotalCategoryAmount("researchActivities", "cash", year), 0)
+                      .toLocaleString()}
+                  </td>
+                  <td className="border border-gray-300 p-1 text-center font-semibold bg-purple-100 text-xs">-</td>
+                  {/* 연차별 총액 */}
+                  {availableYears.map((year) => (
+                    <td key={year} className="border border-gray-300 p-1 text-center text-xs">
+                      {calculateTotalCategoryAmount("researchActivities", "cash", year).toLocaleString()}
+                    </td>
+                  ))}
+                  <td className="border border-gray-300 p-1 text-center font-semibold bg-blue-100 text-xs">
+                    {availableYears
+                      .reduce((total, year) => total + calculateTotalCategoryAmount("researchActivities", "cash", year), 0)
+                      .toLocaleString()}
+                  </td>
+                </tr>
+                <tr className="bg-green-50">
+                  <td className="border border-gray-300 p-2 text-center font-medium bg-green-50">연구활동비(H) 현물</td>
+                  {/* 연차별 연구활동비 현물 */}
+                  {availableYears.map((year) => (
+                    <td key={year} className="border border-gray-300 p-1 text-center text-xs">
+                      {calculateTotalCategoryAmount("researchActivities", "inkind", year).toLocaleString()}
+                    </td>
+                  ))}
+                  <td className="border border-gray-300 p-1 text-center font-semibold bg-green-100 text-xs">
+                    {availableYears
+                      .reduce((total, year) => total + calculateTotalCategoryAmount("researchActivities", "inkind", year), 0)
+                      .toLocaleString()}
+                  </td>
+                  <td className="border border-gray-300 p-1 text-center font-semibold bg-purple-100 text-xs">-</td>
+                  {/* 연차별 총액 */}
+                  {availableYears.map((year) => (
+                    <td key={year} className="border border-gray-300 p-1 text-center text-xs">
+                      {calculateTotalCategoryAmount("researchActivities", "inkind", year).toLocaleString()}
+                    </td>
+                  ))}
+                  <td className="border border-gray-300 p-1 text-center font-semibold bg-blue-100 text-xs">
+                    {availableYears
+                      .reduce((total, year) => total + calculateTotalCategoryAmount("researchActivities", "inkind", year), 0)
+                      .toLocaleString()}
+                  </td>
+                </tr>
+
+                {/* 연구수당 */}
+                <tr className="bg-green-50">
+                  <td className="border border-gray-300 p-2 text-center font-semibold bg-green-100">연구수당</td>
+                  <td className="border border-gray-300 p-2 text-center font-medium bg-green-50">연구수당(I)</td>
+                  {/* 연차별 연구수당 */}
+                  {availableYears.map((year) => (
+                    <td key={year} className="border border-gray-300 p-1 text-center text-xs">
+                      {calculateTotalCategoryAmount("researchAllowance", "inkind", year).toLocaleString()}
+                    </td>
+                  ))}
+                  <td className="border border-gray-300 p-1 text-center font-semibold bg-green-100 text-xs">
+                    {availableYears
+                      .reduce((total, year) => total + calculateTotalCategoryAmount("researchAllowance", "inkind", year), 0)
+                      .toLocaleString()}
+                  </td>
+                  <td className="border border-gray-300 p-1 text-center font-semibold bg-purple-100 text-xs">-</td>
+                  {/* 연차별 총액 */}
+                  {availableYears.map((year) => (
+                    <td key={year} className="border border-gray-300 p-1 text-center text-xs">
+                      {calculateTotalCategoryAmount("researchAllowance", "inkind", year).toLocaleString()}
+                    </td>
+                  ))}
+                  <td className="border border-gray-300 p-1 text-center font-semibold bg-blue-100 text-xs">
+                    {availableYears
+                      .reduce((total, year) => total + calculateTotalCategoryAmount("researchAllowance", "inkind", year), 0)
+                      .toLocaleString()}
+                  </td>
+                </tr>
+
+                {/* 직접비 소계 */}
+                <tr className="bg-green-100 font-semibold">
+                  <td className="border border-gray-300 p-2 text-center font-bold bg-green-200" colSpan={2}>직접비 소계 (K=E1+F+G+H+I)</td>
+                  {/* 연차별 직접비 소계 */}
+                  {availableYears.map((year) => (
+                    <td key={year} className="border border-gray-300 p-1 text-center font-bold text-xs bg-green-200">
+                      {(
+                        calculateTotalDirectCostsTotal("cash", year) + calculateTotalDirectCostsTotal("inkind", year)
+                      ).toLocaleString()}
+                    </td>
+                  ))}
+                  <td className="border border-gray-300 p-1 text-center font-bold bg-green-300 text-xs">
+                    {availableYears.reduce((total, year) => 
+                      total + calculateTotalDirectCostsTotal("cash", year) + calculateTotalDirectCostsTotal("inkind", year), 0
+                    ).toLocaleString()}
+                  </td>
+                  <td className="border border-gray-300 p-1 text-center font-semibold bg-purple-100 text-xs">-</td>
+                  {/* 연차별 총액 */}
+                  {availableYears.map((year) => (
+                    <td key={year} className="border border-gray-300 p-1 text-center font-bold text-xs bg-blue-100">
+                      {(
+                        calculateTotalDirectCostsTotal("cash", year) + calculateTotalDirectCostsTotal("inkind", year)
+                      ).toLocaleString()}
+                    </td>
+                  ))}
+                  <td className="border border-gray-300 p-1 text-center font-bold bg-blue-200 text-xs">
+                    {availableYears.reduce((total, year) => 
+                      total + calculateTotalDirectCostsTotal("cash", year) + calculateTotalDirectCostsTotal("inkind", year), 0
+                    ).toLocaleString()}
+                  </td>
+                </tr>
+
+                {/* 간접비 */}
+                <tr className="bg-purple-100 font-semibold">
+                  <td className="border border-gray-300 p-2 text-center font-bold bg-purple-200" colSpan={2}>간접비(L)</td>
+                  {/* 연차별 간접비 */}
+                  {availableYears.map((year) => (
+                    <td key={year} className="border border-gray-300 p-1 text-center font-bold text-xs bg-purple-200">
+                      {calculateTotalIndirectCostsTotal("cash", year) + calculateTotalIndirectCostsTotal("inkind", year)}
+                    </td>
+                  ))}
+                  <td className="border border-gray-300 p-1 text-center font-bold bg-purple-300 text-xs">
+                    {availableYears.reduce((total, year) => 
+                      total + calculateTotalIndirectCostsTotal("cash", year) + calculateTotalIndirectCostsTotal("inkind", year), 0
+                    ).toLocaleString()}
+                  </td>
+                  <td className="border border-gray-300 p-1 text-center font-bold bg-purple-300 text-xs">
+                    {availableYears.reduce((total, year) => 
+                      total + calculateTotalIndirectCostsTotal("cash", year) + calculateTotalIndirectCostsTotal("inkind", year), 0
+                    ).toLocaleString()}
+                  </td>
+                  {/* 연차별 총액 */}
+                  {availableYears.map((year) => (
+                    <td key={year} className="border border-gray-300 p-1 text-center font-bold text-xs bg-blue-100">
+                      {calculateTotalYearTotal(year).toLocaleString()}
+                    </td>
+                  ))}
+                  <td className="border border-gray-300 p-1 text-center font-bold bg-blue-200 text-xs">
+                    {calculateGrandTotal().toLocaleString()}
+                  </td>
+                </tr>
+
+                {/* 연구개발비 총액 */}
+                <tr className="bg-blue-100 font-bold">
+                  <td className="border border-gray-300 p-2 text-center font-bold bg-blue-200" colSpan={2}>연구개발비 총액 (M=K+L)</td>
+                  {/* 연차별 연구개발비 총액 */}
+                  {availableYears.map((year) => (
+                    <td key={year} className="border border-gray-300 p-1 text-center font-bold text-xs bg-blue-200">
+                      {calculateTotalYearTotal(year).toLocaleString()}
+                    </td>
+                  ))}
+                  <td className="border border-gray-300 p-1 text-center font-bold bg-blue-300 text-xs">
+                    {calculateGrandTotal().toLocaleString()}
+                  </td>
+                  <td className="border border-gray-300 p-1 text-center font-bold bg-blue-300 text-xs">
+                    {calculateGrandTotal().toLocaleString()}
+                  </td>
+                  {/* 연차별 총액 */}
+                  {availableYears.map((year) => (
+                    <td key={year} className="border border-gray-300 p-1 text-center font-bold text-xs bg-blue-200">
+                      {calculateTotalYearTotal(year).toLocaleString()}
+                    </td>
+                  ))}
+                  <td className="border border-gray-300 p-1 text-center font-bold bg-blue-300 text-xs">
+                    {calculateGrandTotal().toLocaleString()}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )
+    }
+
+    // 기관별 예산일 때는 기존의 상세 테이블 렌더링
     return (
       <div className="overflow-x-auto">
         <table className="w-full border-collapse border border-gray-300 text-sm">
@@ -1813,16 +2417,16 @@ export function BudgetComposition({ project, consortiumData }: BudgetComposition
                     // 모든 연차의 기관들을 중복 제거하여 탭 생성
                     const allOrgs = new Map<string, Organization>();
                     
-                    Object.values(consortiumData.yearlyOrganizations).forEach((yearOrgs) => {
-                      yearOrgs.forEach((org: any) => {
-                        if (!allOrgs.has(org.id)) {
-                          allOrgs.set(org.id, {
-                            id: org.id,
-                            name: org.name,
-                            type: org.type,
-                            members: org.members || []
-                          });
-                        }
+                    // 첫 번째 연차의 기관 정보만 사용하여 중복 방지
+                    const firstYear = Math.min(...Object.keys(consortiumData.yearlyOrganizations).map(Number));
+                    const firstYearOrgs = consortiumData.yearlyOrganizations[firstYear] || [];
+                    
+                    firstYearOrgs.forEach((org: any) => {
+                      allOrgs.set(org.id, {
+                        id: org.id,
+                        name: org.name,
+                        type: org.type,
+                        members: org.members || []
                       });
                     });
                     
@@ -1903,16 +2507,16 @@ export function BudgetComposition({ project, consortiumData }: BudgetComposition
                 // 모든 연차의 기관들을 중복 제거하여 탭 생성
                 const allOrgs = new Map<string, Organization>();
                 
-                Object.values(consortiumData.yearlyOrganizations).forEach((yearOrgs) => {
-                  yearOrgs.forEach((org: any) => {
-                    if (!allOrgs.has(org.id)) {
-                      allOrgs.set(org.id, {
-                        id: org.id,
-                        name: org.name,
-                        type: org.type,
-                        members: org.members || []
-                      });
-                    }
+                // 첫 번째 연차의 기관 정보만 사용하여 중복 방지
+                const firstYear = Math.min(...Object.keys(consortiumData.yearlyOrganizations).map(Number));
+                const firstYearOrgs = consortiumData.yearlyOrganizations[firstYear] || [];
+                
+                firstYearOrgs.forEach((org: any) => {
+                  allOrgs.set(org.id, {
+                    id: org.id,
+                    name: org.name,
+                    type: org.type,
+                    members: org.members || []
                   });
                 });
                 

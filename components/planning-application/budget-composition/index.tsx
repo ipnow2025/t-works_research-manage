@@ -1959,16 +1959,16 @@ export function BudgetComposition({ project, consortiumData }: BudgetComposition
                     // 모든 연차의 기관들을 중복 제거하여 탭 생성
                     const allOrgs = new Map<string, Organization>();
                     
-                    Object.values(consortiumData.yearlyOrganizations).forEach((yearOrgs) => {
-                      yearOrgs.forEach((org: any) => {
-                        if (!allOrgs.has(org.id)) {
-                          allOrgs.set(org.id, {
-                            id: org.id,
-                            name: org.name,
-                            type: org.type,
-                            members: org.members || []
-                          });
-                        }
+                    // 첫 번째 연차의 기관 정보만 사용하여 중복 방지
+                    const firstYear = Math.min(...Object.keys(consortiumData.yearlyOrganizations).map(Number));
+                    const firstYearOrgs = consortiumData.yearlyOrganizations[firstYear] || [];
+                    
+                    firstYearOrgs.forEach((org: any) => {
+                      allOrgs.set(org.id, {
+                        id: org.id,
+                        name: org.name,
+                        type: org.type,
+                        members: org.members || []
                       });
                     });
                     
@@ -2049,16 +2049,16 @@ export function BudgetComposition({ project, consortiumData }: BudgetComposition
                 // 모든 연차의 기관들을 중복 제거하여 탭 생성
                 const allOrgs = new Map<string, Organization>();
                 
-                Object.values(consortiumData.yearlyOrganizations).forEach((yearOrgs) => {
-                  yearOrgs.forEach((org: any) => {
-                    if (!allOrgs.has(org.id)) {
-                      allOrgs.set(org.id, {
-                        id: org.id,
-                        name: org.name,
-                        type: org.type,
-                        members: org.members || []
-                      });
-                    }
+                // 첫 번째 연차의 기관 정보만 사용하여 중복 방지
+                const firstYear = Math.min(...Object.keys(consortiumData.yearlyOrganizations).map(Number));
+                const firstYearOrgs = consortiumData.yearlyOrganizations[firstYear] || [];
+                
+                firstYearOrgs.forEach((org: any) => {
+                  allOrgs.set(org.id, {
+                    id: org.id,
+                    name: org.name,
+                    type: org.type,
+                    members: org.members || []
                   });
                 });
                 
