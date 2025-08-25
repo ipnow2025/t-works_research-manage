@@ -366,7 +366,6 @@ export function DetailedBudgetCalculatorDialog({ open, onOpenChange, onApplyTemp
     
     const organizations = consortiumData.organizations
     const budgets: any[] = []
-    const govRatio = Number(governmentRatio) || 70
     
     if (institutionInputMode === "ratio") {
       // 비율 설정 모드: 정부지원예산을 기준으로 계산
@@ -378,14 +377,32 @@ export function DetailedBudgetCalculatorDialog({ open, onOpenChange, onApplyTemp
         // 기관별 정부지원예산 = 전체 정부지원예산 × 기관별 배분 비율
         const governmentAmount = Math.round((totalBudgetValue * ratio) / 100)
         
+        // 기관별 개별 비율 사용 여부 확인
+        // const customRatios = institutionCustomRatios[org.id] // 제거됨
+        // const useCustomRatios = customRatios?.useCustomRatios || false // 제거됨
+        
+        let govRatio, cashRatio, inkindRatio
+        
+        // if (useCustomRatios && customRatios) { // 제거됨
+        //   // 기관별 개별 비율 사용 // 제거됨
+        //   govRatio = customRatios.governmentRatio // 제거됨
+        //   cashRatio = customRatios.privateCashRatio // 제거됨
+        //   inkindRatio = customRatios.privateInkindRatio // 제거됨
+        // } else { // 제거됨
+          // 전체 비율 사용 // 제거됨
+          govRatio = Number(governmentRatio) // 제거됨
+          cashRatio = Number(privateCashRatio) // 제거됨
+          inkindRatio = Number(privateInkindRatio) // 제거됨
+        // } // 제거됨
+        
         // 기관별 총 연구개발비 = 기관별 정부지원예산 × (100 / 정부지원예산 비율)
         const instBudget = Math.round((governmentAmount * 100) / govRatio)
         
         // 기관별 민간 현금 = 기관별 총 연구개발비 × 민간 현금 비율
-        const privateCashAmount = Math.round((instBudget * Number(privateCashRatio)) / 100)
+        const privateCashAmount = Math.round((instBudget * cashRatio) / 100)
         
         // 기관별 민간 현물 = 기관별 총 연구개발비 × 민간 현물 비율
-        const privateInkindAmount = Math.round((instBudget * Number(privateInkindRatio)) / 100)
+        const privateInkindAmount = Math.round((instBudget * inkindRatio) / 100)
         
         budgets[index] = {
           total: instBudget, // 총 연구개발비
@@ -399,37 +416,71 @@ export function DetailedBudgetCalculatorDialog({ open, onOpenChange, onApplyTemp
       organizations.forEach((org, index) => {
         const directInput = yearlyInstitutionDirectAmounts[year]?.[index] || institutionDirectAmounts[index]
         
-        if (directInput && directInput.amount > 0) {
-          let instBudget: number
-          let governmentAmount: number
+        if (!directInput) {
+          budgets[index] = { total: 0, government: 0, privateCash: 0, privateInkind: 0 }
+          return
+        }
+        
+        let governmentAmount, totalAmount
+        
+        if (directInput.type === "government") {
+          // 정부지원예산을 직접 입력한 경우
+          governmentAmount = directInput.amount
           
-          if (directInput.type === "government") {
-            // 정부지원예산 입력 시
-            governmentAmount = directInput.amount
-            instBudget = Math.round((governmentAmount * 100) / govRatio) // 총 연구개발비 계산
-          } else {
-            // 총 연구개발비 입력 시
-            instBudget = directInput.amount
-            governmentAmount = Math.round((instBudget * govRatio) / 100) // 정부지원예산 계산
-          }
+          // 기관별 개별 비율 사용 여부 확인
+          // const customRatios = institutionCustomRatios[org.id] // 제거됨
+          // const useCustomRatios = customRatios?.useCustomRatios || false // 제거됨
           
-          // 민간 현금과 현물 계산
-          const privateCashAmount = Math.round((instBudget * Number(privateCashRatio)) / 100)
-          const privateInkindAmount = Math.round((instBudget * Number(privateInkindRatio)) / 100)
+          let govRatio
+          // if (useCustomRatios && customRatios) { // 제거됨
+          //   govRatio = customRatios.governmentRatio // 제거됨
+          // } else { // 제거됨
+            govRatio = Number(governmentRatio) // 제거됨
+          // } // 제거됨
           
-          budgets[index] = {
-            total: instBudget,
-            government: governmentAmount,
-            privateCash: privateCashAmount,
-            privateInkind: privateInkindAmount,
-          }
+          // 총 연구개발비 = 정부지원예산 ÷ 정부지원예산 비율
+          totalAmount = Math.round((governmentAmount * 100) / govRatio)
         } else {
-          budgets[index] = {
-            total: 0,
-            government: 0,
-            privateCash: 0,
-            privateInkind: 0,
-          }
+          // 총 연구개발비를 직접 입력한 경우
+          totalAmount = directInput.amount
+          
+          // 기관별 개별 비율 사용 여부 확인
+          // const customRatios = institutionCustomRatios[org.id] // 제거됨
+          // const useCustomRatios = customRatios?.useCustomRatios || false // 제거됨
+          
+          let govRatio
+          // if (useCustomRatios && customRatios) { // 제거됨
+          //   govRatio = customRatios.governmentRatio // 제거됨
+          // } else { // 제거됨
+            govRatio = Number(governmentRatio) // 제거됨
+          // } // 제거됨
+          
+          // 정부지원예산 = 총 연구개발비 × 정부지원예산 비율
+          governmentAmount = Math.round((totalAmount * govRatio) / 100)
+        }
+        
+        // 기관별 개별 비율 사용 여부 확인
+        // const customRatios = institutionCustomRatios[org.id] // 제거됨
+        // const useCustomRatios = customRatios?.useCustomRatios || false // 제거됨
+        
+        let cashRatio, inkindRatio
+        // if (useCustomRatios && customRatios) { // 제거됨
+        //   cashRatio = customRatios.privateCashRatio // 제거됨
+        //   inkindRatio = customRatios.privateInkindRatio // 제거됨
+        // } else { // 제거됨
+          cashRatio = Number(privateCashRatio) // 제거됨
+          inkindRatio = Number(privateInkindRatio) // 제거됨
+        // } // 제거됨
+        
+        // 민간 현금과 현물 계산
+        const privateCashAmount = Math.round((totalAmount * cashRatio) / 100)
+        const privateInkindAmount = Math.round((totalAmount * inkindRatio) / 100)
+        
+        budgets[index] = {
+          total: totalAmount,
+          government: governmentAmount,
+          privateCash: privateCashAmount,
+          privateInkind: privateInkindAmount,
         }
       })
     }
@@ -1076,9 +1127,18 @@ export function DetailedBudgetCalculatorDialog({ open, onOpenChange, onApplyTemp
           onOpenChange={setInstitutionDetailedBudgetOpen}
           institution={selectedInstitution}
           totalBudget={selectedInstitutionBudget}
-          governmentRatio={Number(governmentRatio)}
-          privateCashRatio={Number(privateCashRatio)}
-          privateInkindRatio={Number(privateInkindRatio)}
+          governmentRatio={
+            // institutionCustomRatios[selectedInstitution.id]?.useCustomRatios  // 제거됨
+              Number(governmentRatio) // 제거됨
+          }
+          privateCashRatio={
+            // institutionCustomRatios[selectedInstitution.id]?.useCustomRatios  // 제거됨
+              Number(privateCashRatio) // 제거됨
+          }
+          privateInkindRatio={
+            // institutionCustomRatios[selectedInstitution.id]?.useCustomRatios  // 제거됨
+              Number(privateInkindRatio) // 제거됨
+          }
           onSave={handleSaveInstitutionDetailedBudget}
         />
       )}
